@@ -1,0 +1,101 @@
+severity,action,deadline_cycles,needs_human,reason,subset,unit,cycle,pred_RUL,rul_low,rul_high,decision_RUL,decision_policy,anomaly_score,RUL
+MEDIUM,Schedule inspection,4.0,False,"Pessimistic RUL 44 <= 75; anomaly confirmed (best estimate 46, 80% range 44-51)",FD003,1,233,46.0,44.0,51.0,44.0,pessimistic (raw 10%),0.671,44
+MEDIUM,Schedule inspection,4.0,False,"Pessimistic RUL 44 <= 75 (best estimate 47, 80% range 44-50)",FD003,2,124,47.0,44.0,50.0,44.0,pessimistic (raw 10%),0.578,51
+HIGH,Schedule repair,11.0,False,"Pessimistic RUL 26 <= 40 (best estimate 28, 80% range 25-29)",FD003,3,234,28.0,25.0,29.0,26.0,pessimistic (raw 10%),0.707,27
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 119, 80% range 99-125)",FD003,4,68,119.0,99.0,125.0,104.0,pessimistic (raw 10%),0.459,120
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 96, 80% range 93-121)",FD003,5,138,96.0,93.0,121.0,94.0,pessimistic (raw 10%),0.43,101
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 113, 80% range 93-125)",FD003,6,64,113.0,93.0,125.0,98.0,pessimistic (raw 10%),0.426,99
+MEDIUM,Schedule inspection,21.0,False,"Pessimistic RUL 61 <= 75; anomaly confirmed (best estimate 68, 80% range 59-69)",FD003,7,158,68.0,59.0,69.0,61.0,pessimistic (raw 10%),0.649,71
+MEDIUM,Schedule inspection,7.0,False,"Pessimistic RUL 47 <= 75; anomaly confirmed (best estimate 56, 80% range 45-56)",FD003,8,192,56.0,45.0,56.0,47.0,pessimistic (raw 10%),0.63,55
+MEDIUM,Schedule inspection,7.0,False,"Pessimistic RUL 47 <= 75 (best estimate 60, 80% range 43-60)",FD003,9,238,60.0,43.0,60.0,47.0,pessimistic (raw 10%),0.533,55
+MEDIUM,Schedule inspection,23.0,False,"Pessimistic RUL 63 <= 75 (best estimate 64, 80% range 63-92)",FD003,10,131,64.0,63.0,92.0,63.0,pessimistic (raw 10%),0.489,66
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 89, 80% range 76-119)",FD003,11,103,89.0,76.0,119.0,79.0,pessimistic (raw 10%),0.557,77
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 112, 80% range 77-112)",FD003,12,146,112.0,77.0,112.0,85.0,pessimistic (raw 10%),0.471,115
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 109, 80% range 91-125)",FD003,13,65,109.0,91.0,125.0,95.0,pessimistic (raw 10%),0.449,115
+HIGH,Schedule repair,14.0,False,"Pessimistic RUL 29 <= 40 (best estimate 30, 80% range 29-36)",FD003,14,169,30.0,29.0,36.0,29.0,pessimistic (raw 10%),0.668,31
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 116, 80% range 110-125)",FD003,15,112,116.0,110.0,125.0,111.0,pessimistic (raw 10%),0.408,108
+MEDIUM,Schedule inspection,18.0,False,"Pessimistic RUL 58 <= 75 (best estimate 90, 80% range 49-121)",FD003,16,126,90.0,49.0,121.0,58.0,pessimistic (raw 10%),0.429,56
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 123, 80% range 114-125)",FD003,17,230,123.0,114.0,125.0,116.0,pessimistic (raw 10%),0.482,136
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 116, 80% range 99-125)",FD003,18,244,116.0,99.0,125.0,103.0,pessimistic (raw 10%),0.411,132
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 90, 80% range 76-125)",FD003,19,115,90.0,76.0,125.0,79.0,pessimistic (raw 10%),0.402,85
+MEDIUM,Schedule inspection,11.0,False,"Pessimistic RUL 51 <= 75; anomaly confirmed (best estimate 56, 80% range 49-56)",FD003,20,207,56.0,49.0,56.0,51.0,pessimistic (raw 10%),0.648,56
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 14 <= 15 (best estimate 19, 80% range 13-19)",FD003,21,263,19.0,13.0,19.0,14.0,pessimistic (raw 10%),0.711,18
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 112, 80% range 108-125)",FD003,22,119,112.0,108.0,125.0,109.0,pessimistic (raw 10%),0.415,119
+MEDIUM,Schedule inspection,26.0,False,"Pessimistic RUL 66 <= 75; anomaly confirmed (best estimate 85, 80% range 60-85)",FD003,23,405,85.0,60.0,85.0,66.0,pessimistic (raw 10%),0.657,78
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 6 <= 15 (best estimate 9, 80% range 5-10)",FD003,24,475,9.0,5.0,10.0,6.0,pessimistic (raw 10%),0.716,9
+MEDIUM,Schedule inspection,2.0,False,"Pessimistic RUL 42 <= 75 (best estimate 51, 80% range 39-51)",FD003,25,169,51.0,39.0,51.0,42.0,pessimistic (raw 10%),0.623,58
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 9 <= 15 (best estimate 13, 80% range 8-13)",FD003,26,130,13.0,8.0,13.0,9.0,pessimistic (raw 10%),0.689,11
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 113, 80% range 103-125)",FD003,27,104,113.0,103.0,125.0,106.0,pessimistic (raw 10%),0.591,88
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 125, 80% range 118-125)",FD003,28,70,125.0,118.0,125.0,119.0,pessimistic (raw 10%),0.423,144
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 116, 80% range 98-125)",FD003,29,89,116.0,98.0,125.0,102.0,pessimistic (raw 10%),0.451,124
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 84, 80% range 77-105)",FD003,30,333,84.0,77.0,105.0,79.0,pessimistic (raw 10%),0.577,89
+MEDIUM,Schedule inspection,31.0,False,"Pessimistic RUL 71 <= 75 (best estimate 78, 80% range 69-97)",FD003,31,152,78.0,69.0,97.0,71.0,pessimistic (raw 10%),0.476,79
+MEDIUM,Schedule inspection,11.0,False,"Pessimistic RUL 51 <= 75; anomaly confirmed (best estimate 66, 80% range 46-103)",FD003,32,120,66.0,46.0,103.0,51.0,pessimistic (raw 10%),0.634,55
+MEDIUM,Schedule inspection,25.0,False,"Pessimistic RUL 65 <= 75 (best estimate 76, 80% range 62-88)",FD003,33,180,76.0,62.0,88.0,65.0,pessimistic (raw 10%),0.487,71
+MEDIUM,Schedule inspection,30.0,False,"Pessimistic RUL 70 <= 75; anomaly confirmed (best estimate 96, 80% range 62-96)",FD003,34,105,96.0,62.0,96.0,70.0,pessimistic (raw 10%),0.606,65
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 93, 80% range 84-120)",FD003,35,144,93.0,84.0,120.0,86.0,pessimistic (raw 10%),0.504,87
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 122, 80% range 116-125)",FD003,36,90,122.0,116.0,125.0,118.0,pessimistic (raw 10%),0.402,137
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 125, 80% range 119-125)",FD003,37,47,125.0,119.0,125.0,121.0,pessimistic (raw 10%),0.41,145
+HIGH,Schedule repair,5.0,False,"Pessimistic RUL 20 <= 40 (best estimate 22, 80% range 19-51)",FD003,38,133,22.0,19.0,51.0,20.0,pessimistic (raw 10%),0.626,22
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 6 <= 15 (best estimate 8, 80% range 5-10)",FD003,39,310,8.0,5.0,10.0,6.0,pessimistic (raw 10%),0.712,8
+MEDIUM,Schedule inspection,1.0,False,"Pessimistic RUL 41 <= 75; anomaly confirmed (best estimate 41, 80% range 41-53)",FD003,40,313,41.0,41.0,53.0,41.0,pessimistic (raw 10%),0.696,41
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 123, 80% range 114-125)",FD003,41,101,123.0,114.0,125.0,116.0,pessimistic (raw 10%),0.398,131
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 107, 80% range 79-125)",FD003,42,87,107.0,79.0,125.0,86.0,pessimistic (raw 10%),0.563,115
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 119, 80% range 107-125)",FD003,43,133,119.0,107.0,125.0,110.0,pessimistic (raw 10%),0.409,128
+MEDIUM,Schedule inspection,8.0,False,"Pessimistic RUL 48 <= 75 (best estimate 53, 80% range 47-62)",FD003,44,146,53.0,47.0,62.0,48.0,pessimistic (raw 10%),0.591,69
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 117, 80% range 101-125)",FD003,45,88,117.0,101.0,125.0,105.0,pessimistic (raw 10%),0.386,111
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 7 <= 15 (best estimate 7, 80% range 7-12)",FD003,46,180,7.0,7.0,12.0,7.0,pessimistic (raw 10%),0.711,7
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 120, 80% range 109-125)",FD003,47,56,120.0,109.0,125.0,111.0,pessimistic (raw 10%),0.44,137
+MEDIUM,Schedule inspection,11.0,False,"Pessimistic RUL 51 <= 75; anomaly confirmed (best estimate 55, 80% range 50-62)",FD003,48,179,55.0,50.0,62.0,51.0,pessimistic (raw 10%),0.65,55
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 123, 80% range 115-125)",FD003,49,211,123.0,115.0,125.0,117.0,pessimistic (raw 10%),0.409,135
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 11 <= 15 (best estimate 12, 80% range 11-18)",FD003,50,147,12.0,11.0,18.0,11.0,pessimistic (raw 10%),0.661,11
+MEDIUM,Schedule inspection,34.0,False,"Pessimistic RUL 74 <= 75 (best estimate 82, 80% range 71-112)",FD003,51,118,82.0,71.0,112.0,74.0,pessimistic (raw 10%),0.456,78
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 122, 80% range 122-125)",FD003,52,38,122.0,122.0,125.0,122.0,pessimistic (raw 10%),0.448,120
+MEDIUM,Schedule inspection,33.0,False,"Pessimistic RUL 73 <= 75 (best estimate 81, 80% range 70-116)",FD003,53,108,81.0,70.0,116.0,73.0,pessimistic (raw 10%),0.437,87
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 120, 80% range 105-125)",FD003,54,50,120.0,105.0,125.0,108.0,pessimistic (raw 10%),0.416,87
+MEDIUM,Schedule inspection,11.0,False,"Pessimistic RUL 51 <= 75; anomaly confirmed (best estimate 52, 80% range 50-52)",FD003,55,203,52.0,50.0,52.0,51.0,pessimistic (raw 10%),0.625,55
+MEDIUM,Schedule inspection,35.0,False,"Pessimistic RUL 75 <= 75 (best estimate 89, 80% range 70-96)",FD003,56,162,89.0,70.0,96.0,75.0,pessimistic (raw 10%),0.491,93
+MEDIUM,Schedule inspection,31.0,False,"Pessimistic RUL 71 <= 75 (best estimate 79, 80% range 69-101)",FD003,57,158,79.0,69.0,101.0,71.0,pessimistic (raw 10%),0.528,88
+MEDIUM,Schedule inspection,4.0,False,"Pessimistic RUL 44 <= 75 (best estimate 46, 80% range 43-76)",FD003,58,119,46.0,43.0,76.0,44.0,pessimistic (raw 10%),0.495,40
+MEDIUM,Schedule inspection,6.0,False,"Pessimistic RUL 46 <= 75; anomaly confirmed (best estimate 49, 80% range 45-49)",FD003,59,149,49.0,45.0,49.0,46.0,pessimistic (raw 10%),0.631,49
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 118, 80% range 90-125)",FD003,60,112,118.0,90.0,125.0,96.0,pessimistic (raw 10%),0.46,128
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 125, 80% range 120-125)",FD003,61,78,125.0,120.0,125.0,121.0,pessimistic (raw 10%),0.443,129
+MEDIUM,Schedule inspection,12.0,False,"Pessimistic RUL 52 <= 75 (best estimate 58, 80% range 50-94)",FD003,62,224,58.0,50.0,94.0,52.0,pessimistic (raw 10%),0.577,58
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 116, 80% range 107-125)",FD003,63,137,116.0,107.0,125.0,109.0,pessimistic (raw 10%),0.517,117
+HIGH,Schedule repair,10.0,False,"Pessimistic RUL 25 <= 40 (best estimate 30, 80% range 24-30)",FD003,64,271,30.0,24.0,30.0,25.0,pessimistic (raw 10%),0.692,28
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 123, 80% range 117-125)",FD003,65,79,123.0,117.0,125.0,118.0,pessimistic (raw 10%),0.384,115
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 101, 80% range 78-125)",FD003,66,122,101.0,78.0,125.0,83.0,pessimistic (raw 10%),0.537,87
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 104, 80% range 83-115)",FD003,67,186,104.0,83.0,115.0,88.0,pessimistic (raw 10%),0.579,92
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 109, 80% range 105-125)",FD003,68,188,109.0,105.0,125.0,106.0,pessimistic (raw 10%),0.43,103
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 90, 80% range 90-120)",FD003,69,105,90.0,90.0,120.0,90.0,pessimistic (raw 10%),0.39,100
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 93, 80% range 77-125)",FD003,70,84,93.0,77.0,125.0,81.0,pessimistic (raw 10%),0.504,63
+HIGH,Schedule repair,18.0,False,"Pessimistic RUL 33 <= 40 (best estimate 35, 80% range 32-36)",FD003,71,367,35.0,32.0,36.0,33.0,pessimistic (raw 10%),0.71,35
+MEDIUM,Schedule inspection,8.0,False,"Pessimistic RUL 48 <= 75; anomaly confirmed (best estimate 55, 80% range 46-56)",FD003,72,232,55.0,46.0,56.0,48.0,pessimistic (raw 10%),0.651,45
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 107, 80% range 86-125)",FD003,73,109,107.0,86.0,125.0,91.0,pessimistic (raw 10%),0.414,99
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 125, 80% range 125-125)",FD003,74,68,125.0,125.0,125.0,125.0,pessimistic (raw 10%),0.445,117
+HIGH,Schedule repair,22.0,True,"Pessimistic RUL 37 <= 40; anomaly detector did not confirm, verify (best estimate 42, 80% range 36-75)",FD003,75,191,42.0,36.0,75.0,37.0,pessimistic (raw 10%),0.615,45
+HIGH,Schedule repair,9.0,False,"Pessimistic RUL 24 <= 40 (best estimate 26, 80% range 24-35)",FD003,76,180,26.0,24.0,35.0,24.0,pessimistic (raw 10%),0.629,27
+MEDIUM,Schedule inspection,32.0,False,"Pessimistic RUL 72 <= 75; anomaly confirmed (best estimate 81, 80% range 69-86)",FD003,77,381,81.0,69.0,86.0,72.0,pessimistic (raw 10%),0.662,86
+HIGH,Schedule repair,4.0,False,"Pessimistic RUL 19 <= 40 (best estimate 22, 80% range 17-24)",FD003,78,279,22.0,17.0,24.0,19.0,pessimistic (raw 10%),0.711,20
+HIGH,Schedule repair,2.0,False,"Pessimistic RUL 17 <= 40 (best estimate 19, 80% range 16-26)",FD003,79,170,19.0,16.0,26.0,17.0,pessimistic (raw 10%),0.659,18
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 115, 80% range 107-125)",FD003,80,85,115.0,107.0,125.0,109.0,pessimistic (raw 10%),0.502,133
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 10 <= 15 (best estimate 15, 80% range 9-15)",FD003,81,155,15.0,9.0,15.0,10.0,pessimistic (raw 10%),0.695,15
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 2 <= 15 (best estimate 2, 80% range 2-7)",FD003,82,194,2.0,2.0,7.0,2.0,pessimistic (raw 10%),0.715,6
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 125, 80% range 93-125)",FD003,83,168,125.0,93.0,125.0,101.0,pessimistic (raw 10%),0.447,145
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 92, 80% range 79-125)",FD003,84,76,92.0,79.0,125.0,82.0,pessimistic (raw 10%),0.423,104
+MEDIUM,Schedule inspection,25.0,False,"Pessimistic RUL 65 <= 75 (best estimate 69, 80% range 64-119)",FD003,85,118,69.0,64.0,119.0,65.0,pessimistic (raw 10%),0.536,56
+HIGH,Schedule repair,9.0,False,"Pessimistic RUL 24 <= 40 (best estimate 26, 80% range 24-34)",FD003,86,174,26.0,24.0,34.0,24.0,pessimistic (raw 10%),0.663,25
+MEDIUM,Schedule inspection,17.0,False,"Pessimistic RUL 57 <= 75 (best estimate 68, 80% range 54-85)",FD003,87,218,68.0,54.0,85.0,57.0,pessimistic (raw 10%),0.497,68
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 117, 80% range 110-125)",FD003,88,41,117.0,110.0,125.0,112.0,pessimistic (raw 10%),0.417,144
+MEDIUM,Schedule inspection,4.0,False,"Pessimistic RUL 44 <= 75 (best estimate 44, 80% range 44-108)",FD003,89,120,44.0,44.0,108.0,44.0,pessimistic (raw 10%),0.517,41
+MEDIUM,Schedule inspection,4.0,False,"Pessimistic RUL 44 <= 75 (best estimate 51, 80% range 42-68)",FD003,90,206,51.0,42.0,68.0,44.0,pessimistic (raw 10%),0.561,51
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 112, 80% range 88-125)",FD003,91,56,112.0,88.0,125.0,93.0,pessimistic (raw 10%),0.465,81
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 12 <= 15 (best estimate 13, 80% range 12-15)",FD003,92,266,13.0,12.0,15.0,12.0,pessimistic (raw 10%),0.712,14
+MEDIUM,Schedule inspection,31.0,False,"Pessimistic RUL 71 <= 75 (best estimate 72, 80% range 71-100)",FD003,93,158,72.0,71.0,100.0,71.0,pessimistic (raw 10%),0.518,67
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 5 <= 15 (best estimate 7, 80% range 4-12)",FD003,94,333,7.0,4.0,12.0,5.0,pessimistic (raw 10%),0.716,10
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 110, 80% range 90-122)",FD003,95,213,110.0,90.0,122.0,94.0,pessimistic (raw 10%),0.474,127
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 111, 80% range 87-125)",FD003,96,358,111.0,87.0,125.0,92.0,pessimistic (raw 10%),0.66,113
+LOW,No action; keep monitoring,,False,"Healthy (best estimate 114, 80% range 102-125)",FD003,97,95,114.0,102.0,125.0,105.0,pessimistic (raw 10%),0.393,123
+HIGH,Schedule repair,3.0,False,"Pessimistic RUL 18 <= 40 (best estimate 19, 80% range 18-23)",FD003,98,182,19.0,18.0,23.0,18.0,pessimistic (raw 10%),0.666,17
+CRITICAL,Ground engine; repair or replace before next flight,0.0,False,"Pessimistic RUL 9 <= 15 (best estimate 10, 80% range 8-11)",FD003,99,289,10.0,8.0,11.0,9.0,pessimistic (raw 10%),0.713,8
+HIGH,Schedule repair,6.0,False,"Pessimistic RUL 21 <= 40 (best estimate 24, 80% range 20-25)",FD003,100,247,24.0,20.0,25.0,21.0,pessimistic (raw 10%),0.697,28

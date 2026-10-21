@@ -1,0 +1,15 @@
+{
+  "subset": "FD002",
+  "anomaly_threshold": 0.577269803640658,
+  "critical_rul": 15,
+  "high_rul": 40,
+  "medium_rul": 75,
+  "long_life_rul": 100,
+  "safety_margin": 3,
+  "trained_with": "FD004",
+  "decision_policy": "pessimistic (raw 10%)",
+  "range_widening": 1.05,
+  "range_coverage_target": 0.8,
+  "test_rmse": 10.524881770918151,
+  "test_mae": 7.7598354810200005
+}

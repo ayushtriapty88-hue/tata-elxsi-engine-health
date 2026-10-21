@@ -1,0 +1,5 @@
+subset,trained_with,train_engines,test_engines,safety_margin,decision_policy,range_widening,cv_rmse,cv_range_coverage,test_rmse,test_mae,nasa_score,rmse_unclipped,test_range_coverage,avg_range_width,agent_cost_v2_to_v3,urgent_underrated,early_alarms,agent_correct,critical_missed,work_orders,to_human,anomaly_caught_near_failure,anomaly_false_alarms,minutes
+FD001,FD003,200,100,2,pessimistic (raw 10%),1.2,8.47,69% -> 80%,10.02,7.46,159.4,11.36,82%,24.5,0.130 -> 0.090,3.6% -> 0.0%,3.0% -> 9.0%,91%,0,50,1,100%,1.1%,8.7
+FD002,FD004,509,259,3,pessimistic (raw 10%),1.05,9.78,75% -> 80%,10.52,7.76,472.5,23.68,80%,21.7,0.247 -> 0.197,2.7% -> 1.3%,7.7% -> 12.4%,86%,0,138,6,99%,0.4%,17.1
+FD003,FD001,200,100,0,pessimistic (raw 10%),1.3,7.5,68% -> 80%,9.55,6.06,184.1,11.14,74%,21.6,0.220 -> 0.220,4.3% -> 4.3%,0.0% -> 9.0%,89%,0,55,1,100%,2.8%,8.6
+FD004,FD002,509,248,0,pessimistic (raw 10%),1.05,11.28,76% -> 81%,10.68,6.66,554.7,23.41,77%,21.2,0.770 -> 0.181,21.7% -> 0.0%,3.2% -> 14.5%,84%,0,130,9,100%,2.3%,17.1
