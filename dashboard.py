@@ -527,37 +527,36 @@ with tab_sim:
     first_crit = sim_h[sim_h["severity"] == "CRITICAL"]["cycle"].min()
 
     # Session State for interactive simulation cycle
-    if f"sim_at_{sim_unit}" not in st.session_state:
-        st.session_state[f"sim_at_{sim_unit}"] = sim_max_c
+    slider_key = f"slider_sim_{sim_unit}"
+    if slider_key not in st.session_state:
+        st.session_state[slider_key] = 1
 
-    # Playback Controls
+    # Playback Controls - updates slider_key directly!
     ctrl1, ctrl2, ctrl3, ctrl4, ctrl5 = st.columns([1, 1, 1, 1, 1.2], vertical_alignment="center")
-    if ctrl1.button("⏮ Start (Cycle 1)", use_container_width=True):
-        st.session_state[f"sim_at_{sim_unit}"] = 1
+    if ctrl1.button("⏮ Start (Cycle 1)", use_container_width=True, key=f"btn_start_{sim_unit}"):
+        st.session_state[slider_key] = 1
         st.rerun()
-    if ctrl2.button("◀ -10 Flights", use_container_width=True):
-        st.session_state[f"sim_at_{sim_unit}"] = max(1, st.session_state[f"sim_at_{sim_unit}"] - 10)
+    if ctrl2.button("◀ -10 Flights", use_container_width=True, key=f"btn_prev_{sim_unit}"):
+        st.session_state[slider_key] = max(sim_min_c, st.session_state[slider_key] - 10)
         st.rerun()
-    if ctrl3.button("+10 Flights ▶", use_container_width=True):
-        st.session_state[f"sim_at_{sim_unit}"] = min(sim_max_c, st.session_state[f"sim_at_{sim_unit}"] + 10)
+    if ctrl3.button("+10 Flights ▶", use_container_width=True, key=f"btn_next_{sim_unit}"):
+        st.session_state[slider_key] = min(sim_max_c, st.session_state[slider_key] + 10)
         st.rerun()
-    if pd.notna(first_crit) and ctrl4.button("🚨 Jump to Critical", use_container_width=True):
-        st.session_state[f"sim_at_{sim_unit}"] = int(first_crit)
+    if pd.notna(first_crit) and ctrl4.button("🚨 Jump to Critical", use_container_width=True, key=f"btn_crit_{sim_unit}"):
+        st.session_state[slider_key] = int(first_crit)
         st.rerun()
-    if ctrl5.button("⏭ Final Flight", use_container_width=True):
-        st.session_state[f"sim_at_{sim_unit}"] = sim_max_c
+    if ctrl5.button("⏭ Final Flight", use_container_width=True, key=f"btn_end_{sim_unit}"):
+        st.session_state[slider_key] = sim_max_c
         st.rerun()
 
-    # Manual Scrubber Slider
+    # Manual Scrubber Slider - bound directly to slider_key
     curr_c = st.slider(
         "🎚 Live Telemetry Scrubber (Flight Cycle Replay)",
         min_value=sim_min_c,
         max_value=sim_max_c,
-        value=int(st.session_state[f"sim_at_{sim_unit}"]),
-        help="Drag to step through the engine's entire service life cycle-by-cycle.",
-        key=f"slider_sim_{sim_unit}"
+        key=slider_key,
+        help="Drag to step through the engine's entire service life cycle-by-cycle."
     )
-    st.session_state[f"sim_at_{sim_unit}"] = curr_c
 
     now_sim = sim_h[sim_h["cycle"] == curr_c].iloc[0]
     sev_sim = now_sim["severity"]
