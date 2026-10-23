@@ -539,6 +539,16 @@ with tab_sim:
     if speed_key not in st.session_state:
         st.session_state[speed_key] = 2
 
+    # Advance cycle before widget creation if playing (avoids StreamlitWidgetAlreadyInstantiatedError)
+    if st.session_state.get(play_key, False):
+        step = st.session_state.get(speed_key, 2)
+        next_c = st.session_state[slider_key] + step
+        if next_c >= sim_max_c:
+            st.session_state[slider_key] = sim_max_c
+            st.session_state[play_key] = False
+        else:
+            st.session_state[slider_key] = next_c
+
     is_playing = st.session_state[play_key]
 
     # Row 1: Continuous Play / Stop Simulation
@@ -795,9 +805,7 @@ with tab_sim:
     # Continuous Simulation Auto-Play Loop Execution
     if st.session_state.get(play_key, False):
         if st.session_state[slider_key] < sim_max_c:
-            step = st.session_state.get(speed_key, 2)
-            st.session_state[slider_key] = min(sim_max_c, st.session_state[slider_key] + step)
-            time.sleep(0.08)
+            time.sleep(0.06)
             st.rerun()
         else:
             st.session_state[play_key] = False
