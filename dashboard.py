@@ -9,6 +9,7 @@ Run:
 import glob
 import json
 import os
+import time
 
 import numpy as np
 import pandas as pd
@@ -526,26 +527,67 @@ with tab_sim:
     first_high = sim_h[sim_h["severity"] == "HIGH"]["cycle"].min()
     first_crit = sim_h[sim_h["severity"] == "CRITICAL"]["cycle"].min()
 
-    # Session State for interactive simulation cycle
+    # Session State for interactive simulation cycle & autoplay
     slider_key = f"slider_sim_{sim_unit}"
+    play_key = f"sim_playing_{sim_unit}"
+    speed_key = f"sim_speed_{sim_unit}"
+
     if slider_key not in st.session_state:
         st.session_state[slider_key] = 1
+    if play_key not in st.session_state:
+        st.session_state[play_key] = False
+    if speed_key not in st.session_state:
+        st.session_state[speed_key] = 2
 
-    # Playback Controls - updates slider_key directly!
-    ctrl1, ctrl2, ctrl3, ctrl4, ctrl5 = st.columns([1, 1, 1, 1, 1.2], vertical_alignment="center")
-    if ctrl1.button("⏮ Start (Cycle 1)", use_container_width=True, key=f"btn_start_{sim_unit}"):
-        st.session_state[slider_key] = 1
+    is_playing = st.session_state[play_key]
+
+    # Row 1: Continuous Play / Stop Simulation
+    play_c1, play_c2, play_c3 = st.columns([1.6, 1.2, 2.2], vertical_alignment="center")
+    
+    play_btn_txt = "⏸ Pause Simulation" if is_playing else "▶ Start Simulation (Cycle 1 ➔ End)"
+    if play_c1.button(play_btn_txt, use_container_width=True, type="primary" if not is_playing else "secondary", key=f"btn_play_{sim_unit}"):
+        if is_playing:
+            st.session_state[play_key] = False
+        else:
+            if st.session_state[slider_key] >= sim_max_c:
+                st.session_state[slider_key] = sim_min_c
+            st.session_state[play_key] = True
+        st.rerun()
+
+    if play_c2.button("⏹ Stop", use_container_width=True, key=f"btn_stop_{sim_unit}"):
+        st.session_state[play_key] = False
+        st.rerun()
+
+    speed_val = play_c3.radio(
+        "Simulation Speed",
+        options=[1, 2, 5],
+        format_func=lambda s: f"{s}x Speed ({s} flight{'s' if s>1 else ''}/step)",
+        horizontal=True,
+        index=[1, 2, 5].index(st.session_state[speed_key]) if st.session_state[speed_key] in [1, 2, 5] else 1,
+        key=f"radio_spd_{sim_unit}"
+    )
+    st.session_state[speed_key] = speed_val
+
+    # Row 2: Step & Milestone Controls (Keep all original buttons!)
+    ctrl1, ctrl2, ctrl3, ctrl4, ctrl5 = st.columns([1, 1, 1, 1.2, 1], vertical_alignment="center")
+    if ctrl1.button("⏮ Cycle 1", use_container_width=True, key=f"btn_start_{sim_unit}"):
+        st.session_state[play_key] = False
+        st.session_state[slider_key] = sim_min_c
         st.rerun()
     if ctrl2.button("◀ -10 Flights", use_container_width=True, key=f"btn_prev_{sim_unit}"):
+        st.session_state[play_key] = False
         st.session_state[slider_key] = max(sim_min_c, st.session_state[slider_key] - 10)
         st.rerun()
     if ctrl3.button("+10 Flights ▶", use_container_width=True, key=f"btn_next_{sim_unit}"):
+        st.session_state[play_key] = False
         st.session_state[slider_key] = min(sim_max_c, st.session_state[slider_key] + 10)
         st.rerun()
     if pd.notna(first_crit) and ctrl4.button("🚨 Jump to Critical", use_container_width=True, key=f"btn_crit_{sim_unit}"):
+        st.session_state[play_key] = False
         st.session_state[slider_key] = int(first_crit)
         st.rerun()
     if ctrl5.button("⏭ Final Flight", use_container_width=True, key=f"btn_end_{sim_unit}"):
+        st.session_state[play_key] = False
         st.session_state[slider_key] = sim_max_c
         st.rerun()
 
@@ -749,6 +791,17 @@ with tab_sim:
 
     log_html = "".join(f'<div style="font-size:0.84rem;color:#94A3B8;padding:4px 0;">{m}</div>' for m in milestones)
     st.markdown(f'<div style="background:{SURFACE_2};border:1px solid {BORDER_SOFT};border-radius:10px;padding:12px 18px;">{log_html}</div>', unsafe_allow_html=True)
+
+    # Continuous Simulation Auto-Play Loop Execution
+    if st.session_state.get(play_key, False):
+        if st.session_state[slider_key] < sim_max_c:
+            step = st.session_state.get(speed_key, 2)
+            st.session_state[slider_key] = min(sim_max_c, st.session_state[slider_key] + step)
+            time.sleep(0.08)
+            st.rerun()
+        else:
+            st.session_state[play_key] = False
+            st.rerun()
 
 
 with tab_list:
