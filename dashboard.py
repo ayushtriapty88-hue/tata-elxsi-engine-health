@@ -461,7 +461,8 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ─── Tabs ─────────────────────────────────────────────────────────────────────
-tab_list, tab_engine, tab_val, tab_model = st.tabs([
+tab_sim, tab_list, tab_engine, tab_val, tab_model = st.tabs([
+    "🎬  Live Simulation",
     "📋  Action List",
     "🔍  Engine Detail",
     "✅  Validation",
@@ -469,8 +470,288 @@ tab_list, tab_engine, tab_val, tab_model = st.tabs([
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 1 — ACTION LIST
+# TAB 0 — LIVE ENGINE FLIGHT SIMULATION
 # ══════════════════════════════════════════════════════════════════════════════
+with tab_sim:
+    st.markdown("""
+    <div style="margin-bottom:14px;">
+      <span style="font-size:1.15rem;font-weight:700;color:#F1F5F9;">🎬 Autonomous Prognostic & Triage Simulation</span>
+      <p style="font-size:0.83rem;color:#94A3B8;margin-top:3px;">
+        Simulate an active turbofan engine flight-by-flight. Observe ML triad predictions update dynamically,
+        watch risk levels escalate in real-time, and see automated ERP work orders generated when airworthiness safety thresholds are breached.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    sim_units = dec["unit"].astype(int).tolist()
+    # Curated high-impact demo units
+    preset_units = [34, 81, 76, 49, 100]
+    default_unit = 34 if 34 in sim_units else sim_units[0]
+
+    sc1, sc2, sc3 = st.columns([1.3, 1.3, 1.4], vertical_alignment="bottom")
+    
+    selected_preset = sc1.selectbox(
+        "🎯 Quick Scenario Presets",
+        options=[34, 81, 76, 49] if all(u in sim_units for u in [34, 81, 76, 49]) else sim_units[:4],
+        format_func=lambda u: {
+            34: "Engine 34 (Full Degradation Lifecycle — 203 flights)",
+            81: "Engine 81 (Long Service Life — 213 flights)",
+            76: "Engine 76 (Rapid Failure Cascade — 205 flights)",
+            49: "Engine 49 (Extended Service Operation — 303 flights)"
+        }.get(u, f"Engine {u}"),
+        key="sim_preset_select"
+    )
+
+    sim_unit = sc2.selectbox(
+        "Or Select Any Engine in Fleet",
+        sim_units,
+        index=sim_units.index(selected_preset) if selected_preset in sim_units else 0,
+        format_func=lambda u: f"Engine {u}  ·  Current: {LABEL[dict(zip(dec['unit'].astype(int), dec['severity'])).get(u, 'LOW')]}",
+        key="sim_unit_select"
+    )
+
+    sim_h = hist[hist["unit"] == sim_unit].sort_values("cycle").reset_index(drop=True)
+    sim_thr = cfg["anomaly_threshold"]
+    sim_h["anom"] = sim_h["anomaly_score"] > sim_thr
+    sim_h["persist"] = sim_h["anom"].astype(int).rolling(PERSIST, min_periods=1).min().eq(1)
+    sim_h["severity"] = [triage(round(r), a, cfg) for r, a in zip(sim_h["decision_RUL"], sim_h["persist"])]
+    
+    sim_max_c = int(sim_h["cycle"].max())
+    sim_min_c = int(sim_h["cycle"].min())
+    row_info = dec[dec["unit"] == sim_unit].iloc[0]
+    sim_fail_cycle = int(row_info["cycle"] + row_info["RUL"]) if has_truth else None
+
+    # Find the critical transition points for quick navigation
+    first_med = sim_h[sim_h["severity"] == "MEDIUM"]["cycle"].min()
+    first_high = sim_h[sim_h["severity"] == "HIGH"]["cycle"].min()
+    first_crit = sim_h[sim_h["severity"] == "CRITICAL"]["cycle"].min()
+
+    # Session State for interactive simulation cycle
+    if f"sim_at_{sim_unit}" not in st.session_state:
+        st.session_state[f"sim_at_{sim_unit}"] = sim_max_c
+
+    # Playback Controls
+    ctrl1, ctrl2, ctrl3, ctrl4, ctrl5 = st.columns([1, 1, 1, 1, 1.2], vertical_alignment="center")
+    if ctrl1.button("⏮ Start (Cycle 1)", use_container_width=True):
+        st.session_state[f"sim_at_{sim_unit}"] = 1
+        st.rerun()
+    if ctrl2.button("◀ -10 Flights", use_container_width=True):
+        st.session_state[f"sim_at_{sim_unit}"] = max(1, st.session_state[f"sim_at_{sim_unit}"] - 10)
+        st.rerun()
+    if ctrl3.button("+10 Flights ▶", use_container_width=True):
+        st.session_state[f"sim_at_{sim_unit}"] = min(sim_max_c, st.session_state[f"sim_at_{sim_unit}"] + 10)
+        st.rerun()
+    if pd.notna(first_crit) and ctrl4.button("🚨 Jump to Critical", use_container_width=True):
+        st.session_state[f"sim_at_{sim_unit}"] = int(first_crit)
+        st.rerun()
+    if ctrl5.button("⏭ Final Flight", use_container_width=True):
+        st.session_state[f"sim_at_{sim_unit}"] = sim_max_c
+        st.rerun()
+
+    # Manual Scrubber Slider
+    curr_c = st.slider(
+        "🎚 Live Telemetry Scrubber (Flight Cycle Replay)",
+        min_value=sim_min_c,
+        max_value=sim_max_c,
+        value=int(st.session_state[f"sim_at_{sim_unit}"]),
+        help="Drag to step through the engine's entire service life cycle-by-cycle.",
+        key=f"slider_sim_{sim_unit}"
+    )
+    st.session_state[f"sim_at_{sim_unit}"] = curr_c
+
+    now_sim = sim_h[sim_h["cycle"] == curr_c].iloc[0]
+    sev_sim = now_sim["severity"]
+    sev_fill = FILL[sev_sim]
+    sev_lbl = LABEL[sev_sim]
+    pct_life = int((curr_c / sim_max_c) * 100)
+    
+    # Severity Alert Banner
+    alert_bg = GLOW[sev_sim]
+    st.markdown(f"""
+    <div style="background:{alert_bg};border:1px solid {sev_fill};border-radius:10px;padding:12px 18px;margin:12px 0 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <span style="font-size:1.15rem;font-weight:700;color:{TEXT_C[sev_sim]};text-transform:uppercase;">● {sev_lbl}</span>
+        <span style="font-size:0.86rem;color:{TEXT_1};margin-left:14px;">
+          Flight Cycle <b>{curr_c}</b> of {sim_max_c} ({pct_life}% service life expended)
+        </span>
+      </div>
+      <div style="font-size:0.82rem;font-weight:600;color:{TEXT_C[sev_sim]};background:rgba(0,0,0,0.3);padding:4px 12px;border-radius:6px;">
+        {f'SLA: Ground Immediately (0 Flights)' if sev_sim == 'CRITICAL' else (f'SLA: Repair within {int(now_sim["decision_RUL"])} flights' if sev_sim == 'HIGH' else (f'SLA: Routine line inspection' if sev_sim == 'MEDIUM' else 'Active Fleet Operations'))}
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 4 Dynamic Real-Time Metric Cards
+    sim_actual_left = f"{sim_fail_cycle - curr_c} flights" if sim_fail_cycle else "N/A"
+    st.markdown(f"""
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-top:3px solid {sev_fill};border-radius:10px;padding:12px 16px;">
+        <div style="font-size:0.75rem;color:{TEXT_3};text-transform:uppercase;letter-spacing:0.5px;">Predicted RUL (Point Est.)</div>
+        <div style="font-size:1.8rem;font-weight:700;color:{TEXT_1};margin-top:2px;">{now_sim['pred_RUL']:.0f} <span style="font-size:0.9rem;font-weight:400;color:{TEXT_3};">flights</span></div>
+        <div style="font-size:0.72rem;color:{TEXT_3};margin-top:2px;">True Remaining: <b style="color:{TEXT_1}">{sim_actual_left}</b></div>
+      </div>
+      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-top:3px solid {BLUE};border-radius:10px;padding:12px 16px;">
+        <div style="font-size:0.75rem;color:{TEXT_3};text-transform:uppercase;letter-spacing:0.5px;">Calibrated 80% Cone</div>
+        <div style="font-size:1.8rem;font-weight:700;color:{TEXT_1};margin-top:2px;">{rng(now_sim['rul_low'], now_sim['rul_high'])}</div>
+        <div style="font-size:0.72rem;color:{TEXT_3};margin-top:2px;">Planning On: <b style="color:{BLUE}">{now_sim['decision_RUL']:.0f} flights (10% bound)</b></div>
+      </div>
+      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-top:3px solid {'#EF4444' if now_sim['anom'] else '#10B981'};border-radius:10px;padding:12px 16px;">
+        <div style="font-size:0.75rem;color:{TEXT_3};text-transform:uppercase;letter-spacing:0.5px;">Isolation Forest Sensor Gate</div>
+        <div style="font-size:1.8rem;font-weight:700;color:{'#EF4444' if now_sim['anom'] else TEXT_1};margin-top:2px;">{now_sim['anomaly_score']:.3f}</div>
+        <div style="font-size:0.72rem;color:{TEXT_3};margin-top:2px;">Threshold {sim_thr:.3f} · <b style="color:{'#EF4444' if now_sim['anom'] else '#10B981'}">{'⚠️ ANOMALOUS' if now_sim['anom'] else '✓ NORMAL'}</b></div>
+      </div>
+      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-top:3px solid {sev_fill};border-radius:10px;padding:12px 16px;">
+        <div style="font-size:0.75rem;color:{TEXT_3};text-transform:uppercase;letter-spacing:0.5px;">Autonomous ERP Status</div>
+        <div style="font-size:1.4rem;font-weight:700;color:{TEXT_C[sev_sim]};margin-top:6px;">{'🚨 WORK ORDER DISPATCHED' if sev_sim in ['CRITICAL', 'HIGH'] else ('📋 INSPECTION QUEUED' if sev_sim == 'MEDIUM' else '✓ IN SERVICE')}</div>
+        <div style="font-size:0.72rem;color:{TEXT_3};margin-top:4px;">Work Order: <code style="color:{BLUE}">WO-{subset}-{sim_unit:03d}-{curr_c:04d}</code></div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Historical Simulation Chart up to the current flight cycle
+    hist_played = sim_h[sim_h["cycle"] <= curr_c]
+    
+    fig_sim = go.Figure()
+    # Shaded severity threshold zones
+    for lo, hi, s in [
+        (0, cfg["critical_rul"], "CRITICAL"),
+        (cfg["critical_rul"], cfg["high_rul"], "HIGH"),
+        (cfg["high_rul"], cfg["medium_rul"], "MEDIUM")
+    ]:
+        fig_sim.add_hrect(y0=lo, y1=hi, fillcolor=FILL[s], opacity=0.06, line_width=0)
+        fig_sim.add_annotation(
+            x=sim_max_c, y=(lo+hi)/2,
+            text=f"ZONE: {LABEL[s]}", font=dict(size=9, color=FILL[s]),
+            showarrow=False, xanchor="right"
+        )
+
+    # Uncertainty cone
+    fig_sim.add_trace(go.Scatter(
+        x=hist_played["cycle"], y=hist_played["rul_high"],
+        line=dict(width=0), showlegend=False, hoverinfo="skip"
+    ))
+    fig_sim.add_trace(go.Scatter(
+        x=hist_played["cycle"], y=hist_played["rul_low"],
+        fill="tonexty", fillcolor="rgba(59,130,246,0.18)",
+        line=dict(width=0), name="80% Confidence Interval", hoverinfo="skip"
+    ))
+    
+    # Ground truth actual RUL trajectory (if available)
+    if sim_fail_cycle:
+        fig_sim.add_trace(go.Scatter(
+            x=sim_h["cycle"], y=(sim_fail_cycle - sim_h["cycle"]).clip(upper=RUL_CAP),
+            line=dict(color=TEXT_3, width=1.5, dash="dash"),
+            name="Ground Truth (NASA)", hoverinfo="x+y"
+        ))
+
+    # Ensemble Point Prediction trace
+    fig_sim.add_trace(go.Scatter(
+        x=hist_played["cycle"], y=hist_played["pred_RUL"],
+        line=dict(color=BLUE, width=2.5),
+        name="Predicted RUL", hovertemplate="Flight %{x}<br>Pred RUL: %{y:.1f} flights<extra></extra>"
+    ))
+
+    # Current flight cycle marker
+    fig_sim.add_trace(go.Scatter(
+        x=[curr_c], y=[now_sim["pred_RUL"]],
+        mode="markers+text",
+        marker=dict(color=sev_fill, size=12, line=dict(color="#FFFFFF", width=2)),
+        text=[f"Cycle {curr_c} ({LABEL[sev_sim]})"],
+        textposition="top center",
+        name="Current Flight",
+        showlegend=False
+    ))
+
+    fig_sim.update_layout(
+        title=f"Live Prognostic Trajectory — Engine {sim_unit} (Flight 1 to {curr_c})",
+        xaxis_title="Flight Cycle (Age)",
+        yaxis_title="Remaining Useful Life (Cycles)",
+        height=380,
+        margin=dict(l=48, r=20, t=50, b=45),
+        yaxis=dict(range=[-5, RUL_CAP + 15]),
+        xaxis=dict(range=[0, sim_max_c + 5])
+    )
+    show(fig_sim, height=380)
+
+    # Live Generated Work Order Card (Triggered dynamically!)
+    if sev_sim in ["CRITICAL", "HIGH", "MEDIUM"]:
+        wo_id = f"WO-{subset}-{sim_unit:03d}-CYCLE{curr_c:04d}"
+        wo_status = "OPEN"
+        wo_action = ("GROUND IMMEDIATELY: Module replacement and safety overhaul before next flight" 
+                     if sev_sim == "CRITICAL" else 
+                     ("SCHEDULE DEPOT OVERHAUL: Replace high-pressure turbine seal and compressor blades"
+                      if sev_sim == "HIGH" else "ROUTINE LINE INSPECTION: Borescope audit of combustor and turbine"))
+        
+        st.markdown(f"""
+        <div style="background:{SURFACE_2};border:1px solid {sev_fill};border-radius:12px;padding:16px 20px;margin-top:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid {BORDER_SOFT};padding-bottom:10px;margin-bottom:12px;">
+            <div>
+              <span style="font-size:1.1rem;font-weight:700;color:{TEXT_1};">⚡ Autonomous Work Order Dispatched</span>
+              <span style="font-size:0.8rem;color:{TEXT_3};margin-left:12px;">Automated CMMS/ERP Dispatch Integration</span>
+            </div>
+            <span style="background:{GLOW[sev_sim]};color:{TEXT_C[sev_sim]};font-weight:700;font-size:0.8rem;padding:4px 10px;border-radius:6px;border:1px solid {sev_fill};">
+              {LABEL[sev_sim]} · {wo_status}
+            </span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:0.85rem;">
+            <div><span style="color:{TEXT_3};">Work Order ID:</span> <b style="color:{BLUE};font-family:monospace;">{wo_id}</b></div>
+            <div><span style="color:{TEXT_3};">Engine Unit:</span> <b style="color:{TEXT_1};">Unit {sim_unit} (Cycle {curr_c})</b></div>
+            <div><span style="color:{TEXT_3};">Airworthiness Deadline:</span> <b style="color:{TEXT_C[sev_sim]};">{f'{int(now_sim["decision_RUL"])} flights remaining' if now_sim['decision_RUL'] > 0 else '0 flights (Immediate Grounding)'}</b></div>
+          </div>
+          <div style="margin-top:10px;font-size:0.85rem;">
+            <span style="color:{TEXT_3};">Action Mandate:</span> <b style="color:{TEXT_1};">{wo_action}</b>
+          </div>
+          <div style="margin-top:6px;font-size:0.8rem;color:{TEXT_3};">
+            Audit Reason: Lower 10% quantile bound ({now_sim['rul_low']:.1f}) crossed safety threshold ({cfg['critical_rul'] if sev_sim=='CRITICAL' else cfg['high_rul']} cycles) with corroborated anomaly score ({now_sim['anomaly_score']:.3f}).
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        wo_sample = pd.DataFrame([{
+            "work_order_id": wo_id,
+            "created_at_cycle": curr_c,
+            "unit": sim_unit,
+            "severity": sev_sim,
+            "action": wo_action,
+            "deadline_flights": int(now_sim["decision_RUL"]),
+            "predicted_RUL": round(now_sim["pred_RUL"], 1),
+            "pessimistic_bound": round(now_sim["rul_low"], 1),
+            "anomaly_score": round(now_sim["anomaly_score"], 4),
+            "status": "OPEN",
+            "dispatch_protocol": "Zero-LLM Deterministic Rule"
+        }])
+        
+        w_col1, w_col2, _ = st.columns([1.2, 1.2, 3])
+        w_col1.download_button(
+            "📥 Download Work Order JSON",
+            wo_sample.to_json(orient="records", indent=2),
+            file_name=f"{wo_id}.json",
+            mime="application/json"
+        )
+        w_col2.download_button(
+            "📥 Download Work Order CSV",
+            wo_sample.to_csv(index=False),
+            file_name=f"{wo_id}.csv",
+            mime="text/csv"
+        )
+
+    # Flight-by-Flight Audit Event Timeline
+    st.markdown('<div class="section-header">📜 Engine Lifecycle Milestone Log</div>', unsafe_allow_html=True)
+    milestones = []
+    milestones.append(f"• <b>Cycle 001:</b> Turbofan Engine {sim_unit} commissioned into service. Baseline thermodynamic signature established (Status: 🟢 HEALTHY).")
+    if pd.notna(first_med) and curr_c >= first_med:
+        milestones.append(f"• <b>Cycle {int(first_med):03d}:</b> First thermodynamic micro-degradation detected. RUL drops below 75 cycles. Status escalated to <b>🟡 INSPECTION DUE</b>.")
+    if pd.notna(first_high) and curr_c >= first_high:
+        milestones.append(f"• <b>Cycle {int(first_high):03d}:</b> Pessimistic quantile bound crosses 40-flight threshold. Status escalated to <b>🟠 REPAIR SOON</b>. Autonomous maintenance overhaul scheduled.")
+    if pd.notna(first_crit) and curr_c >= first_crit:
+        milestones.append(f"• <b>Cycle {int(first_crit):03d}:</b> <b>CRITICAL SAFETY BREACH</b> — Pessimistic RUL <= 15 flights. Emergency Order: <b>🔴 GROUND IMMEDIATELY</b> with 0-flight SLA.")
+    if curr_c == sim_max_c:
+        milestones.append(f"• <b>Cycle {sim_max_c:03d}:</b> Lifecycle concluded. Asset safely grounded before catastrophic failure. Zero in-flight failures occurred.")
+
+    log_html = "".join(f'<div style="font-size:0.84rem;color:#94A3B8;padding:4px 0;">{m}</div>' for m in milestones)
+    st.markdown(f'<div style="background:{SURFACE_2};border:1px solid {BORDER_SOFT};border-radius:10px;padding:12px 18px;">{log_html}</div>', unsafe_allow_html=True)
+
+
 with tab_list:
     act = dec[dec["severity"] != "LOW"].copy()
     if act.empty:
