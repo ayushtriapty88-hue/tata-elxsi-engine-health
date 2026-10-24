@@ -1,0 +1,52 @@
+name: Keep Streamlit Dashboard Awake
+
+on:
+  schedule:
+    # Run every 6 hours automatically (24/7 in GitHub cloud)
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allows manual 1-click trigger anytime from GitHub Actions tab
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Playwright & Chromium
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Ping and Wake Up Dashboard
+        run: |
+          python - << 'EOF'
+          import sys
+          from playwright.sync_api import sync_playwright
+
+          url = "https://tata-elxsi-engine-health.streamlit.app"
+          print(f"Navigating to {url}...")
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True)
+              page = browser.new_page()
+              try:
+                  page.goto(url, wait_until="networkidle", timeout=60000)
+                  print("Page loaded successfully.")
+                  
+                  # Check if the 'wake up' button exists
+                  wake_btn = page.locator("button:has-text('Yes, get this app back up!')")
+                  if wake_btn.count() > 0:
+                      print("Detected sleeping app! Clicking 'Yes, get this app back up!' button...")
+                      wake_btn.first.click()
+                      page.wait_for_timeout(20000)
+                      print("Wake-up triggered successfully.")
+                  else:
+                      print("App is already awake and operational! Activity counter refreshed.")
+              except Exception as e:
+                  print(f"Notice during ping: {e}")
+              finally:
+                  browser.close()
+          EOF
