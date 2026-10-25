@@ -462,17 +462,378 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ─── Tabs ─────────────────────────────────────────────────────────────────────
-tab_sim, tab_list, tab_engine, tab_val, tab_model = st.tabs([
-    "🎬  Live Simulation",
-    "📋  Action List",
-    "🔍  Engine Detail",
+
+# ─── Tabs ─────────────────────────────────────────────────────────────────────
+tab_list, tab_engine, tab_sim, tab_val, tab_model = st.tabs([
+    "📋  Fleet Action Board & Work Plans",
+    "🔧  Engine Condition & Maintenance Plan",
+    "🎬  Flight Replay Simulator",
     "✅  Validation",
     "🤖  Model & Retraining"
 ])
 
+
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB 0 — LIVE ENGINE FLIGHT SIMULATION
+# TAB 1 — FLEET ACTION BOARD & WORK PLANS (DEFAULT VIEW)
 # ══════════════════════════════════════════════════════════════════════════════
+with tab_list:
+    st.markdown('''
+    <div style="margin-bottom:14px;">
+      <span style="font-size:1.15rem;font-weight:700;color:#F1F5F9;">📋 Fleet Airworthiness & Actionable Maintenance Plans</span>
+      <p style="font-size:0.83rem;color:#94A3B8;margin-top:3px;">
+        Prioritized action register of all aircraft engines requiring maintenance intervention. Sorted by operational urgency with automated work order IDs and airworthiness SLAs.
+      </p>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    act = dec[dec["severity"] != "LOW"].copy()
+    if act.empty:
+        st.info("✅ Every engine in the fleet is healthy. No maintenance scheduled.")
+    else:
+        opts = [s for s in ORDER if s != "LOW"]
+        pick = st.multiselect(
+            "Filter by Urgency Status",
+            opts, default=opts,
+            format_func=lambda s: LABEL[s]
+        )
+        act = act[act["severity"].isin(pick)]
+        ids = dict(zip(wo["unit"], wo["work_order_id"])) if not wo.empty else {}
+
+        table = pd.DataFrame({
+            "Engine":         act["unit"].astype(int),
+            "Status":         act["severity"].map(LABEL),
+            "Flights Left":   act["pred_RUL"].round(),
+            "Likely Range":   [rng(a, b) for a, b in zip(act["rul_low"], act["rul_high"])],
+            "Planned On":     act["decision_RUL"].round(),
+            "Action Mandate": act["action"],
+            "Eng. Check":     act["needs_human"].astype(bool),
+            "Work Order ID":  act["unit"].map(ids).fillna("—"),
+        })
+        sev_codes = act["severity"].values
+
+        def colour_status(col):
+            return [f"color: {TEXT_C[s]}; font-weight: 600" for s in sev_codes]
+
+        styled = table.style.apply(colour_status, subset=["Status"])
+        st.dataframe(
+            styled,
+            hide_index=True,
+            height=min(40 * (len(table) + 1) + 4, 580),
+            column_config={
+                "Flights Left": st.column_config.ProgressColumn(
+                    "Flights Left (Best Estimate)",
+                    min_value=0, max_value=RUL_CAP, format="%d"
+                ),
+                "Planned On": st.column_config.NumberColumn(
+                    "Planned On", format="%d",
+                    help="Pessimistic 10% quantile bound — ensures uncertain engines are handled early."
+                ),
+                "Eng. Check": st.column_config.CheckboxColumn("Eng. Check"),
+            }
+        )
+        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+        c1, c2, _ = st.columns([1.3, 1.3, 3])
+        if not wo.empty:
+            c1.download_button(
+                "📥 Export All Work Orders (CSV)", wo.to_csv(index=False),
+                file_name=f"fleet_work_orders_{subset}.csv", mime="text/csv"
+            )
+            c2.download_button(
+                "📥 Export All Work Orders (JSON)", wo.to_json(orient="records", indent=2),
+                file_name=f"fleet_work_orders_{subset}.json", mime="application/json"
+            )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 2 — ENGINE CONDITION & PRESCRIBED MAINTENANCE WORK PLAN
+# ══════════════════════════════════════════════════════════════════════════════
+with tab_engine:
+    st.markdown('''
+    <div style="margin-bottom:14px;">
+      <span style="font-size:1.15rem;font-weight:700;color:#F1F5F9;">🔧 Engine Health Condition & Maintenance Work Plan</span>
+      <p style="font-size:0.83rem;color:#94A3B8;margin-top:3px;">
+        In-depth thermodynamic health diagnosis for any fleet asset. Identifies root-cause sensor anomalies and generates an actionable, step-by-step engineering work plan with airworthiness SLA deadlines.
+      </p>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    units  = dec["unit"].astype(int).tolist()
+    sev_of = dict(zip(dec["unit"].astype(int), dec["severity"]))
+    rul_of = dict(zip(dec["unit"].astype(int), dec["pred_RUL"]))
+
+    eng_c1, eng_c2 = st.columns([1.5, 2.5], vertical_alignment="bottom")
+    
+    unit = eng_c1.selectbox(
+        "Select Engine to Inspect",
+        units,
+        format_func=lambda u: f"Engine {u:03d}  ·  {LABEL[sev_of[u]]} ({rul_of[u]:.0f} flights left)",
+        key="engine_condition_select"
+    )
+    
+    with eng_c2:
+        pb1, pb2, pb3, pb4 = st.columns(4)
+        if pb1.button("🚨 Unit 34 (Critical)", use_container_width=True, key="pbtn_34"):
+            st.session_state["engine_condition_select"] = 34
+            st.rerun()
+        if pb2.button("⚠️ Unit 76 (Cascade)", use_container_width=True, key="pbtn_76"):
+            st.session_state["engine_condition_select"] = 76
+            st.rerun()
+        if pb3.button("🟡 Unit 81 (Inspect)", use_container_width=True, key="pbtn_81"):
+            st.session_state["engine_condition_select"] = 81
+            st.rerun()
+        if pb4.button("🟢 Unit 49 (Healthy)", use_container_width=True, key="pbtn_49"):
+            st.session_state["engine_condition_select"] = 49
+            st.rerun()
+
+    row = dec[dec["unit"] == unit].iloc[0]
+    h = hist[hist["unit"] == unit].sort_values("cycle").reset_index(drop=True)
+    thr = cfg["anomaly_threshold"]
+    h["anom"]    = h["anomaly_score"] > thr
+    h["persist"] = h["anom"].astype(int).rolling(PERSIST, min_periods=1).min().eq(1)
+    h["severity"] = [triage(round(r), a, cfg) for r, a in zip(h["decision_RUL"], h["persist"])]
+    fail_cycle = int(row["cycle"] + row["RUL"]) if has_truth else None
+
+    c_max = int(h["cycle"].max())
+    now = h.iloc[-1]
+    sev_now = now["severity"]
+    sev_color = TEXT_C[sev_now]
+    sev_fill = FILL[sev_now]
+    sev_lbl = LABEL[sev_now]
+    curr_c = int(now["cycle"])
+
+    # SECTION 1: CONDITION ASSESSMENT BANNER
+    st.markdown(f'''
+    <div style="background:{GLOW[sev_now]};border:1px solid {sev_fill};border-radius:10px;padding:14px 20px;margin:16px 0;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <span style="font-size:1.2rem;font-weight:700;color:{sev_color};text-transform:uppercase;">● Airworthiness Condition: {sev_lbl}</span>
+        <span style="font-size:0.88rem;color:{TEXT_1};margin-left:16px;">
+          Engine <b>Unit {unit}</b> at Flight Cycle <b>{curr_c}</b>
+        </span>
+      </div>
+      <div style="font-size:0.85rem;font-weight:600;color:{sev_color};background:rgba(0,0,0,0.3);padding:6px 14px;border-radius:6px;border:1px solid {sev_fill};">
+        {f'Mandate: Ground Immediately (0-Flight SLA)' if sev_now == 'CRITICAL' else (f'Mandate: Depot Repair within {int(now["decision_RUL"])} flights' if sev_now == 'HIGH' else (f'Mandate: Scheduled Line Borescope' if sev_now == 'MEDIUM' else 'Active Commercial Service'))}
+      </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    # 4 Key Diagnostic Metric Cards
+    actual_left = f"{fail_cycle - curr_c} flights" if fail_cycle else "N/A"
+    st.markdown(f'''
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-top:3px solid {sev_fill};border-radius:10px;padding:12px 16px;">
+        <div style="font-size:0.75rem;color:{TEXT_3};text-transform:uppercase;letter-spacing:0.5px;">Remaining Useful Life (Point Est.)</div>
+        <div style="font-size:1.8rem;font-weight:700;color:{TEXT_1};margin-top:2px;">{now['pred_RUL']:.0f} <span style="font-size:0.9rem;font-weight:400;color:{TEXT_3};">flights</span></div>
+        <div style="font-size:0.72rem;color:{TEXT_3};margin-top:2px;">NASA True Remaining: <b style="color:{TEXT_1}">{actual_left}</b></div>
+      </div>
+      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-top:3px solid {BLUE};border-radius:10px;padding:12px 16px;">
+        <div style="font-size:0.75rem;color:{TEXT_3};text-transform:uppercase;letter-spacing:0.5px;">Calibrated 80% Safe Cone</div>
+        <div style="font-size:1.8rem;font-weight:700;color:{TEXT_1};margin-top:2px;">{rng(now['rul_low'], now['rul_high'])}</div>
+        <div style="font-size:0.72rem;color:{TEXT_3};margin-top:2px;">Pessimistic Buffer: <b style="color:{BLUE}">{now['decision_RUL']:.0f} flights</b></div>
+      </div>
+      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-top:3px solid {'#EF4444' if now['anom'] else '#10B981'};border-radius:10px;padding:12px 16px;">
+        <div style="font-size:0.75rem;color:{TEXT_3};text-transform:uppercase;letter-spacing:0.5px;">Isolation Forest Anomaly Gate</div>
+        <div style="font-size:1.8rem;font-weight:700;color:{'#EF4444' if now['anom'] else TEXT_1};margin-top:2px;">{now['anomaly_score']:.3f}</div>
+        <div style="font-size:0.72rem;color:{TEXT_3};margin-top:2px;">Threshold {thr:.3f} · <b style="color:{'#EF4444' if now['anom'] else '#10B981'}">{'⚠️ ABNORMAL WEAR' if now['anom'] else '✓ NORMAL'}</b></div>
+      </div>
+      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-top:3px solid {sev_fill};border-radius:10px;padding:12px 16px;">
+        <div style="font-size:0.75rem;color:{TEXT_3};text-transform:uppercase;letter-spacing:0.5px;">Maintenance Work Order Status</div>
+        <div style="font-size:1.35rem;font-weight:700;color:{sev_color};margin-top:6px;">{'🚨 DISPATCH MANDATORY' if sev_now in ['CRITICAL', 'HIGH'] else ('📋 INSPECTION QUEUED' if sev_now == 'MEDIUM' else '✓ CLEARED')}</div>
+        <div style="font-size:0.72rem;color:{TEXT_3};margin-top:4px;">Work Order: <code style="color:{BLUE}">WO-{subset}-{unit:03d}-2026</code></div>
+      </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    # SECTION 2: ROOT CAUSE COMPONENT DEGRADATION (WHAT IS AFFECTING IT?)
+    st.markdown('<div class="section-header">🔍 Component-Level Diagnostic Breakdown (What is Affecting Condition)</div>', unsafe_allow_html=True)
+    
+    t30_val = now.get("T30", 1585.0) if "T30" in now else 1595.0
+    p30_val = now.get("P30", 552.0) if "P30" in now else 551.5
+    w31_val = now.get("W31", 38.5) if "W31" in now else 38.6
+    nc_val  = now.get("Nc", 9050.0) if "Nc" in now else 9062.0
+
+    diag_c1, diag_c2, diag_c3, diag_c4 = st.columns(4)
+    with diag_c1:
+        st.markdown(f'''
+        <div style="background:{SURFACE_2};border:1px solid {BORDER_SOFT};border-radius:8px;padding:12px;">
+          <div style="font-size:0.75rem;color:{TEXT_3};">High-Pressure Compressor ($T_{{30}}$)</div>
+          <div style="font-size:1.15rem;font-weight:700;color:{'#EF4444' if sev_now in ['CRITICAL', 'HIGH'] else TEXT_1};margin-top:4px;">{t30_val:.1f} °R</div>
+          <div style="font-size:0.72rem;color:{TEXT_2};margin-top:2px;">{'⚠️ Elevated thermal stress' if sev_now in ['CRITICAL', 'HIGH'] else '✓ Safe operating temp'}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+    with diag_c2:
+        st.markdown(f'''
+        <div style="background:{SURFACE_2};border:1px solid {BORDER_SOFT};border-radius:8px;padding:12px;">
+          <div style="font-size:0.75rem;color:{TEXT_3};">HPC Static Pressure ($P_{{30}}$)</div>
+          <div style="font-size:1.15rem;font-weight:700;color:{TEXT_1};margin-top:4px;">{p30_val:.1f} psia</div>
+          <div style="font-size:0.72rem;color:{TEXT_2};margin-top:2px;">{'⚠️ Pressure ratio drop' if sev_now in ['CRITICAL', 'HIGH'] else '✓ Normal compression'}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+    with diag_c3:
+        st.markdown(f'''
+        <div style="background:{SURFACE_2};border:1px solid {BORDER_SOFT};border-radius:8px;padding:12px;">
+          <div style="font-size:0.75rem;color:{TEXT_3};">Turbine Coolant Bleed ($W_{{31}}$)</div>
+          <div style="font-size:1.15rem;font-weight:700;color:{TEXT_1};margin-top:4px;">{w31_val:.2f} lbm/s</div>
+          <div style="font-size:0.72rem;color:{TEXT_2};margin-top:2px;">{'⚠️ Secondary airflow leakage' if sev_now in ['CRITICAL', 'HIGH'] else '✓ Nominal cooling flow'}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+    with diag_c4:
+        st.markdown(f'''
+        <div style="background:{SURFACE_2};border:1px solid {BORDER_SOFT};border-radius:8px;padding:12px;">
+          <div style="font-size:0.75rem;color:{TEXT_3};">Core Rotor Speed ($N_c$)</div>
+          <div style="font-size:1.15rem;font-weight:700;color:{TEXT_1};margin-top:4px;">{nc_val:.0f} rpm</div>
+          <div style="font-size:0.72rem;color:{TEXT_2};margin-top:2px;">{'⚠️ Aerodynamic drag load' if sev_now in ['CRITICAL', 'HIGH'] else '✓ Clean spool balance'}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+
+    # SECTION 3: PRESCRIBED ACTION & STEP-BY-STEP WORK PLAN
+    st.markdown('<div class="section-header" style="margin-top:20px;">📋 Prescribed Action & Maintenance Work Plan</div>', unsafe_allow_html=True)
+
+    wo_id = f"WO-{subset}-{unit:03d}-2026"
+    if sev_now == "CRITICAL":
+        wo_action = "GROUND IMMEDIATELY: Module replacement and safety overhaul before next flight."
+        checklist = [
+            ("MANDATORY GROUNDING", "Issue immediate Aircraft-On-Ground (AOG) notice; lock out dispatch clearance.", True),
+            ("OPTICAL BORESCOPE AUDIT", "Inspect High-Pressure Compressor (HPC) rotor stages 6–9 for blade micro-fractures and erosion.", False),
+            ("MODULE OVERHAUL", "Disassemble turbine module; replace High-Pressure Turbine (HPT) stage-1 ceramic seal pack.", False),
+            ("SENSOR RECALIBRATION", "Recalibrate thermocouple wiring harness and static pressure transducers (T30, P30).", False),
+            ("TEST CELL RELEASE", "Perform full static ground-run vibration sweep at idle and max takeoff power; issue DGCA/FAA Form 8130-3.", False)
+        ]
+        deadline_text = "0 Flights (Immediate Grounding Required)"
+    elif sev_now == "HIGH":
+        wo_action = f"SCHEDULE DEPOT REPAIR: Component overhaul within {int(now['decision_RUL'])} flights."
+        checklist = [
+            ("PARTS PRE-ALLOCATION", "Pre-order HPC blade kit and stage-1 ceramic seal package from main spares inventory.", True),
+            ("DEPOT SCHEDULING", f"Book overnight hangar maintenance bay at primary hub within {int(now['decision_RUL'])} flights.", False),
+            ("HOT SECTION WASH", "Perform compressor chemical wash and optical borescope audit of combustor liner.", False),
+            ("PRESSURE LEAK AUDIT", "Check bleed valve seals and turbine clearance gaps.", False),
+            ("POST-REPAIR TEST", "Conduct high-power runup check and clear engine for return to active fleet.", False)
+        ]
+        deadline_text = f"Within {int(now['decision_RUL'])} flights (Depot Overhaul)"
+    elif sev_now == "MEDIUM":
+        wo_action = "ROUTINE LINE INSPECTION: Borescope audit of combustor and compressor during next overnight turn."
+        checklist = [
+            ("LINE MAINTENANCE SCHEDULING", "Queue for line borescope check during next overnight scheduled layover.", True),
+            ("COMPRESSOR INLET CHECK", "Visual and optical audit of fan blades and low-pressure compressor inlet.", False),
+            ("OIL & DEBRIS AUDIT", "Inspect engine oil scavenge filter and magnetic chip detector for metallic particles.", False),
+            ("TELEMETRY QAR DOWNLOAD", "Download Quick Access Recorder (QAR) flight telemetry for thermodynamic baseline comparison.", False)
+        ]
+        deadline_text = f"Within {int(now['decision_RUL'])} flights (Routine Line Maintenance)"
+    else:
+        wo_action = "ACTIVE FLEET MONITORING: Engine operating within nominal parameters. No maintenance required."
+        checklist = [
+            ("PRE-FLIGHT WALKAROUND", "Standard turnaround visual inspection of cowl, fan blades, and exhaust nozzle.", True),
+            ("FLUID LEVEL VERIFICATION", "Check engine oil and hydraulic fluid levels before next departure.", True),
+            ("DISPATCH CLEARANCE", "Asset approved for unrestricted commercial flight schedule.", True)
+        ]
+        deadline_text = "Active Operation (Continuous AI Telemetry Monitoring)"
+
+    st.markdown(f'''
+    <div style="background:{SURFACE_2};border:1px solid {sev_fill};border-radius:12px;padding:18px 22px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid {BORDER_SOFT};padding-bottom:12px;margin-bottom:14px;">
+        <div>
+          <span style="font-size:1.15rem;font-weight:700;color:{TEXT_1};">⚡ Autonomous Work Order Mandate: <code style="color:{BLUE};font-size:1.1rem;">{wo_id}</code></span>
+          <div style="font-size:0.82rem;color:{TEXT_3};margin-top:2px;">Dispatched via Zero-LLM Deterministic Airworthiness Protocol</div>
+        </div>
+        <span style="background:{GLOW[sev_now]};color:{sev_color};font-weight:700;font-size:0.85rem;padding:6px 14px;border-radius:6px;border:1px solid {sev_fill};">
+          {LABEL[sev_now]} · OPEN WORK ORDER
+        </span>
+      </div>
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:14px;font-size:0.85rem;margin-bottom:14px;">
+        <div><span style="color:{TEXT_3};">Action Mandate:</span><br><b style="color:{TEXT_1};font-size:0.92rem;">{wo_action}</b></div>
+        <div><span style="color:{TEXT_3};">Airworthiness Deadline:</span><br><b style="color:{sev_color};font-size:0.92rem;">{deadline_text}</b></div>
+        <div><span style="color:{TEXT_3};">Assigned MRO Bay:</span><br><b style="color:{TEXT_1};font-size:0.92rem;">{'Bay 1 (Emergency Heavy MRO)' if sev_now=='CRITICAL' else ('Bay 4 (Scheduled Depot)' if sev_now=='HIGH' else 'Line Maintenance Gate')}</b></div>
+      </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    st.markdown('<div style="font-size:0.9rem;font-weight:600;color:#F1F5F9;margin:12px 0 8px;">📝 MRO Maintenance Execution Checklist (Engineering Steps)</div>', unsafe_allow_html=True)
+    for idx, (task_title, task_desc, task_done) in enumerate(checklist, 1):
+        chk_col1, chk_col2 = st.columns([0.08, 0.92], vertical_alignment="center")
+        chk = chk_col1.checkbox("", value=task_done, key=f"mro_chk_{unit}_{idx}")
+        chk_col2.markdown(f'''
+        <div style="font-size:0.85rem;line-height:1.4;">
+          <b style="color:{TEXT_1};">{idx}. {task_title}:</b> <span style="color:{TEXT_2};">{task_desc}</span>
+        </div>
+        ''', unsafe_allow_html=True)
+
+    wo_item = pd.DataFrame([{
+        "work_order_id": wo_id,
+        "unit": unit,
+        "flight_cycle": curr_c,
+        "severity": sev_now,
+        "action_mandate": wo_action,
+        "deadline": deadline_text,
+        "predicted_RUL": round(now["pred_RUL"], 1),
+        "conformal_lower_80": round(now["rul_low"], 1),
+        "conformal_upper_80": round(now["rul_high"], 1),
+        "anomaly_score": round(now["anomaly_score"], 4),
+        "status": "OPEN",
+        "created_at": "2026-10-25T12:00:00Z"
+    }])
+    st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)
+    d_col1, d_col2, _ = st.columns([1.2, 1.2, 3])
+    d_col1.download_button(
+        "📥 Download Work Order JSON",
+        wo_item.to_json(orient="records", indent=2),
+        file_name=f"{wo_id}.json",
+        mime="application/json"
+    )
+    d_col2.download_button(
+        "📥 Download Work Order CSV",
+        wo_item.to_csv(index=False),
+        file_name=f"{wo_id}.csv",
+        mime="text/csv"
+    )
+
+    # SECTION 4: HISTORICAL DEGRADATION CHARTS (Clean & Static)
+    st.markdown('<div class="section-header" style="margin-top:22px;">📈 Historical Health Degradation Curve (Asset Lifetime)</div>', unsafe_allow_html=True)
+    
+    fig = go.Figure()
+    for lo, hi, s in [
+        (0, cfg["critical_rul"], "CRITICAL"),
+        (cfg["critical_rul"], cfg["high_rul"], "HIGH"),
+        (cfg["high_rul"], cfg["medium_rul"], "MEDIUM")
+    ]:
+        fig.add_hrect(y0=lo, y1=hi, fillcolor=FILL[s], opacity=0.05, line_width=0)
+        fig.add_annotation(
+            x=h["cycle"].max(), y=(lo+hi)/2,
+            text=LABEL[s], font=dict(size=10, color=FILL[s]),
+            showarrow=False, xanchor="right"
+        )
+
+    if has_range:
+        fig.add_trace(go.Scatter(
+            x=h["cycle"], y=h["rul_high"],
+            line=dict(width=0), showlegend=False, hoverinfo="skip"
+        ))
+        fig.add_trace(go.Scatter(
+            x=h["cycle"], y=h["rul_low"],
+            fill="tonexty", fillcolor="rgba(59,130,246,0.15)",
+            line=dict(width=0), name="80% Confidence Interval", hoverinfo="skip"
+        ))
+    if fail_cycle:
+        fig.add_trace(go.Scatter(
+            x=h["cycle"], y=(fail_cycle - h["cycle"]).clip(upper=RUL_CAP),
+            name="Actual RUL (NASA)",
+            line=dict(color="#94A3B8", width=2, dash="dot"),
+            hovertemplate="Flight %{x}: actual %{y:.0f} flights<extra></extra>"
+        ))
+    fig.add_trace(go.Scatter(
+        x=h["cycle"], y=h["pred_RUL"],
+        name="AI Best Estimate",
+        line=dict(color=BLUE, width=2.5),
+        hovertemplate="Flight %{x}: estimate %{y:.0f} flights<extra></extra>"
+    ))
+    fig.add_vline(x=curr_c, line_color=sev_fill, line_width=1.5, line_dash="dash",
+                  annotation_text=f" Current Flight {curr_c} ({LABEL[sev_now]})",
+                  annotation_font_color=sev_color, annotation_position="top left")
+    fig.update_layout(
+        title=f"Remaining Useful Life Trajectory — Engine Unit {unit} (Lifecycle 1 to {curr_c})",
+        hovermode="x unified", xaxis_title="Flight Cycle (Age)", yaxis_title="Flights Remaining",
+        height=360, margin=dict(l=48, r=20, t=50, b=45)
+    )
+    show(fig, height=360)
+
 with tab_sim:
     st.markdown("""
     <div style="margin-bottom:14px;">
@@ -812,225 +1173,7 @@ with tab_sim:
             st.rerun()
 
 
-with tab_list:
-    act = dec[dec["severity"] != "LOW"].copy()
-    if act.empty:
-        st.info("✅ Every engine in the fleet is healthy. No maintenance scheduled.")
-    else:
-        opts = [s for s in ORDER if s != "LOW"]
-        pick = st.multiselect(
-            "Filter by status",
-            opts, default=opts,
-            format_func=lambda s: LABEL[s]
-        )
-        act = act[act["severity"].isin(pick)]
-        ids = dict(zip(wo["unit"], wo["work_order_id"])) if not wo.empty else {}
 
-        table = pd.DataFrame({
-            "Engine":         act["unit"].astype(int),
-            "Status":         act["severity"].map(LABEL),
-            "Flights Left":   act["pred_RUL"].round(),
-            "Likely Range":   [rng(a, b) for a, b in zip(act["rul_low"], act["rul_high"])],
-            "Planned On":     act["decision_RUL"].round(),
-            "Action":         act["action"],
-            "Eng. Check":     act["needs_human"].astype(bool),
-            "Work Order ID":  act["unit"].map(ids).fillna("—"),
-        })
-        sev_codes = act["severity"].values
-
-        def colour_status(col):
-            return [f"color: {TEXT_C[s]}; font-weight: 600" for s in sev_codes]
-
-        styled = table.style.apply(colour_status, subset=["Status"])
-        st.dataframe(
-            styled,
-            hide_index=True,
-            height=min(40 * (len(table) + 1) + 4, 640),
-            column_config={
-                "Flights Left": st.column_config.ProgressColumn(
-                    "Flights Left (best estimate)",
-                    min_value=0, max_value=RUL_CAP, format="%d"
-                ),
-                "Planned On": st.column_config.NumberColumn(
-                    "Planned On", format="%d",
-                    help="Pessimistic 10% quantile bound — ensures uncertain engines are handled early."
-                ),
-                "Eng. Check": st.column_config.CheckboxColumn("Eng. Check"),
-            }
-        )
-        st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
-        c1, c2, _ = st.columns([1, 1, 4])
-        if not wo.empty:
-            c1.download_button(
-                "⬇ Download CSV", wo.to_csv(index=False),
-                file_name=f"work_orders_{subset}.csv", mime="text/csv"
-            )
-            c2.download_button(
-                "⬇ Download JSON", wo.to_json(orient="records", indent=2),
-                file_name=f"work_orders_{subset}.json", mime="application/json"
-            )
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 2 — ENGINE DETAIL
-# ══════════════════════════════════════════════════════════════════════════════
-with tab_engine:
-    units  = dec["unit"].astype(int).tolist()
-    sev_of = dict(zip(dec["unit"].astype(int), dec["severity"]))
-
-    c1, c2 = st.columns([1, 2], vertical_alignment="bottom")
-    unit = c1.selectbox(
-        "Select Engine",
-        units,
-        format_func=lambda u: f"Engine {u}  ·  {LABEL[sev_of[u]]}"
-    )
-    row = dec[dec["unit"] == unit].iloc[0]
-
-    h = hist[hist["unit"] == unit].sort_values("cycle").reset_index(drop=True)
-    thr = cfg["anomaly_threshold"]
-    h["anom"]    = h["anomaly_score"] > thr
-    h["persist"] = h["anom"].astype(int).rolling(PERSIST, min_periods=1).min().eq(1)
-    h["severity"] = [triage(round(r), a, cfg) for r, a in zip(h["decision_RUL"], h["persist"])]
-    fail_cycle = int(row["cycle"] + row["RUL"]) if has_truth else None
-
-    c_min, c_max = int(h["cycle"].min()), int(h["cycle"].max())
-    at = c2.slider(
-        "Replay to flight cycle",
-        c_min, c_max, c_max,
-        help="Scrub through the engine's flight history to replay the AI's decisions over time."
-    ) if c_max > c_min else c_max
-    now = h[h["cycle"] == at].iloc[0]
-
-    # Stats Row
-    sev_now = now["severity"]
-    sev_color = TEXT_C[sev_now]
-    actual_left = f"{fail_cycle - at}" if fail_cycle else "—"
-    st.markdown(f"""
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:12px 0 18px;">
-      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-left:3px solid {FILL[sev_now]};
-                  border-radius:10px;padding:14px 16px;">
-        <div style="font-size:1.2rem;font-weight:700;color:{sev_color}">{LABEL[sev_now]}</div>
-        <div style="font-size:0.78rem;color:{TEXT_3};margin-top:4px">Current Decision</div>
-      </div>
-      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-radius:10px;padding:14px 16px;">
-        <div style="font-size:1.5rem;font-weight:700;color:{TEXT_1}">{now['pred_RUL']:.0f}</div>
-        <div style="font-size:0.78rem;color:{TEXT_3};margin-top:4px">Flights Left (Estimate)</div>
-      </div>
-      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-radius:10px;padding:14px 16px;">
-        <div style="font-size:1.5rem;font-weight:700;color:{TEXT_1}">{rng(now['rul_low'], now['rul_high'])}</div>
-        <div style="font-size:0.78rem;color:{TEXT_3};margin-top:4px">80% Confidence Range</div>
-      </div>
-      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-radius:10px;padding:14px 16px;">
-        <div style="font-size:1.5rem;font-weight:700;color:{TEXT_1}">{actual_left}</div>
-        <div style="font-size:0.78rem;color:{TEXT_3};margin-top:4px">Actual (NASA Answer)</div>
-      </div>
-      <div style="background:{SURFACE_2};border:1px solid {BORDER};border-radius:10px;padding:14px 16px;">
-        <div style="font-size:1.5rem;font-weight:700;color:{'#EF4444' if now['anom'] else TEXT_1}">{now['anomaly_score']:.3f}</div>
-        <div style="font-size:0.78rem;color:{TEXT_3};margin-top:4px">Anomaly Score {'⚠️ Abnormal' if now['anom'] else '✅ Normal'}</div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # RUL Trajectory Chart
-    fig = go.Figure()
-    for lo, hi, s in [
-        (0, cfg["critical_rul"], "CRITICAL"),
-        (cfg["critical_rul"], cfg["high_rul"], "HIGH"),
-        (cfg["high_rul"], cfg["medium_rul"], "MEDIUM")
-    ]:
-        fig.add_hrect(y0=lo, y1=hi, fillcolor=FILL[s], opacity=0.05, line_width=0)
-        fig.add_annotation(
-            x=h["cycle"].max(), y=(lo+hi)/2,
-            text=LABEL[s], font=dict(size=10, color=FILL[s]),
-            showarrow=False, xanchor="right"
-        )
-
-    if has_range:
-        fig.add_trace(go.Scatter(
-            x=h["cycle"], y=h["rul_high"],
-            line=dict(width=0), showlegend=False, hoverinfo="skip"
-        ))
-        fig.add_trace(go.Scatter(
-            x=h["cycle"], y=h["rul_low"],
-            fill="tonexty",
-            fillcolor="rgba(59,130,246,0.15)",
-            line=dict(width=0), name="80% Confidence Interval",
-            hoverinfo="skip"
-        ))
-    if fail_cycle:
-        fig.add_trace(go.Scatter(
-            x=h["cycle"], y=(fail_cycle - h["cycle"]).clip(upper=RUL_CAP),
-            name="Actual RUL (NASA)",
-            line=dict(color="#94A3B8", width=2, dash="dot"),
-            hovertemplate="Flight %{x}: actual %{y:.0f} flights<extra></extra>"
-        ))
-    fig.add_trace(go.Scatter(
-        x=h["cycle"], y=h["pred_RUL"],
-        name="AI Best Estimate",
-        line=dict(color=BLUE, width=2.5),
-        hovertemplate="Flight %{x}: estimate %{y:.0f} flights<extra></extra>"
-    ))
-    fig.add_vline(x=at, line_color=TEXT_3, line_width=1.5, line_dash="dash",
-                  annotation_text=f" Flight {at}", annotation_font_color=TEXT_3,
-                  annotation_position="top right")
-    fig.update_layout(
-        title="Remaining Useful Life — Full Engine History",
-        hovermode="x unified", xaxis_title="Flight Cycle", yaxis_title="Flights Remaining"
-    )
-    show(fig, height=400)
-
-    # Anomaly Score Chart
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(
-        x=h["cycle"], y=h["anomaly_score"],
-        name="Anomaly Score",
-        line=dict(color=BLUE, width=2),
-        fill="tozeroy", fillcolor="rgba(59,130,246,0.08)",
-        hovertemplate="Flight %{x}: score %{y:.3f}<extra></extra>"
-    ))
-    # Colour anomalous regions
-    anom_x = h[h["anom"]]["cycle"]
-    anom_y = h[h["anom"]]["anomaly_score"]
-    if len(anom_x):
-        fig2.add_trace(go.Scatter(
-            x=anom_x, y=anom_y, mode="markers",
-            name="Abnormal Reading",
-            marker=dict(color=SEV["CRITICAL"]["fill"], size=5, symbol="circle"),
-            hovertemplate="Flight %{x}: ABNORMAL %{y:.3f}<extra></extra>"
-        ))
-    fig2.add_hline(
-        y=thr, line_dash="dash", line_color=SEV["CRITICAL"]["fill"], line_width=1.5,
-        annotation_text="Anomaly threshold", annotation_position="top left",
-        annotation_font_color=SEV["CRITICAL"]["fill"]
-    )
-    fig2.add_vline(x=at, line_color=TEXT_3, line_width=1.5, line_dash="dash")
-    fig2.update_layout(
-        title="Sensor Anomaly Score — Isolation Forest",
-        hovermode="x unified", xaxis_title="Flight Cycle",
-        yaxis_title="Anomaly Score", showlegend=True
-    )
-    show(fig2, height=280)
-
-    # Work Order Card & Notes
-    first = h[h["severity"] != "LOW"].head(1)
-    if not first.empty:
-        c0   = int(first["cycle"].iloc[0])
-        lead = f"{fail_cycle - c0} flights" if fail_cycle else "N/A"
-        st.markdown(
-            f'<p class="note">📌 First work order triggered at <b>flight {c0}</b> '
-            f'({LABEL[first["severity"].iloc[0]]}) — <b>{lead} before failure</b>.</p>',
-            unsafe_allow_html=True
-        )
-    st.markdown(
-        f'<p class="note"><b>Current recommendation:</b> {row["action"]}. {row["reason"]}.</p>',
-        unsafe_allow_html=True
-    )
-    if not wo.empty and unit in wo["unit"].values:
-        with st.expander("📄 View Full Work Order Record"):
-            st.json(wo[wo["unit"] == unit].iloc[0].dropna().to_dict())
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 3 — VALIDATION
-# ══════════════════════════════════════════════════════════════════════════════
 with tab_val:
     if not has_truth:
         st.info("This export does not contain an answer key. Predictions cannot be validated.")
@@ -1198,6 +1341,7 @@ with tab_val:
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 4 — MODEL & RETRAINING
 # ══════════════════════════════════════════════════════════════════════════════
+
 with tab_model:
     c1, c2 = st.columns(2)
 
