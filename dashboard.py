@@ -424,10 +424,254 @@ h1, h2, h3, h4 {{ color: {TEXT_1} !important; font-weight: 700 !important; }}
     letter-spacing: 1.2px; text-transform: uppercase;
     margin-bottom: 6px;
 }}
+
+/* ─── GUIDED TOUR ─── */
+.tour-card {{
+    position: relative;
+    background: linear-gradient(135deg, #0B1A30 0%, #0E1F3D 100%);
+    border: 1.5px solid rgba(56,189,248,0.35);
+    border-radius: 14px;
+    padding: 20px 26px 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 40px rgba(56,189,248,0.08), inset 0 1px 0 rgba(255,255,255,0.03);
+    overflow: hidden;
+}}
+.tour-card::before {{
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, {BLUE}, {TEAL}, #A78BFA);
+    border-radius: 14px 14px 0 0;
+}}
+.tour-header {{
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+}}
+.tour-badge {{
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(56,189,248,0.10);
+    border: 1px solid rgba(56,189,248,0.25);
+    border-radius: 8px; padding: 5px 14px;
+    font-size: 0.75rem; font-weight: 700; color: {BLUE};
+    letter-spacing: 0.5px;
+}}
+.tour-badge-dot {{
+    width: 8px; height: 8px; border-radius: 50%;
+    background: {BLUE};
+    box-shadow: 0 0 8px rgba(56,189,248,0.5);
+    animation: pulse 2s infinite;
+}}
+.tour-progress {{
+    display: flex; align-items: center; gap: 5px;
+}}
+.tour-pip {{
+    width: 22px; height: 4px; border-radius: 2px;
+    background: {BORDER};
+    transition: background 0.3s;
+}}
+.tour-pip.active {{
+    background: {BLUE};
+    box-shadow: 0 0 6px rgba(56,189,248,0.4);
+}}
+.tour-pip.done {{
+    background: rgba(56,189,248,0.40);
+}}
+.tour-step-num {{
+    font-size: 0.72rem; color: {TEXT_3};
+    font-variant-numeric: tabular-nums;
+    margin-left: 8px;
+}}
+.tour-title {{
+    font-size: 1.1rem; font-weight: 800; color: {TEXT_1};
+    margin-bottom: 8px; line-height: 1.3;
+}}
+.tour-title .tour-icon {{
+    margin-right: 8px;
+}}
+.tour-body {{
+    font-size: 0.88rem; color: {TEXT_2}; line-height: 1.65;
+}}
+.tour-body b {{
+    color: {TEXT_1}; font-weight: 600;
+}}
+.tour-body .tour-highlight {{
+    color: {BLUE}; font-weight: 600;
+}}
+.tour-body .tour-warn {{
+    color: #FF7070; font-weight: 600;
+}}
+.tour-body .tour-safe {{
+    color: #22D3A0; font-weight: 600;
+}}
+.tour-tip {{
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 10px; padding: 5px 12px;
+    background: rgba(45,212,191,0.08);
+    border: 1px solid rgba(45,212,191,0.20);
+    border-radius: 6px;
+    font-size: 0.78rem; color: {TEAL};
+}}
 </style>
 """
 
 st.markdown(CSS, unsafe_allow_html=True)
+
+# ─── GUIDED TOUR DATA & STATE ────────────────────────────────────────────────
+TOUR_STEPS = [
+    {
+        "icon": "👋",
+        "title": "Welcome to the Jet Engine Health Command Center",
+        "body": (
+            "This dashboard is a <b>complete predictive maintenance platform</b> for commercial jet engines, "
+            "built using NASA's C-MAPSS turbofan benchmark dataset. "
+            "It tracks the health of every engine in a fleet, predicts how many safe flights each engine has left, "
+            "and automatically generates maintenance work orders when an engine approaches failure.<br><br>"
+            "<b>What you're looking at right now:</b> The glowing header above shows the project title, team credits, "
+            "and three key pills — our model runs in under 5 milliseconds, provides 80% safety confidence bounds, "
+            "and achieved zero missed failures across all 707 NASA test engines."
+        ),
+        "tip": "💡 Click 'Next' to walk through each section of the dashboard step by step."
+    },
+    {
+        "icon": "📡",
+        "title": "Fleet Dataset Selector — Choose Your Operating Fleet",
+        "body": (
+            "The <span class='tour-highlight'>radio buttons above</span> let you switch between "
+            "<b>4 different NASA test fleets</b>, each with different engine faults and flying conditions:<br><br>"
+            "• <b>FD001</b> — Simple sea-level flights with <b>compressor wear</b> only (100 engines)<br>"
+            "• <b>FD002</b> — Six different flight altitudes and speeds with compressor wear (259 engines)<br>"
+            "• <b>FD003</b> — Sea-level flights with <b>two faults at once</b>: compressor wear + fan damage (100 engines)<br>"
+            "• <b>FD004</b> — The hardest: changing altitudes + dual faults (248 engines)<br><br>"
+            "Switching datasets instantly recalculates every chart and KPI on the entire dashboard."
+        ),
+        "tip": "💡 Try clicking FD004 — the hardest fleet with 248 engines and dual fault modes."
+    },
+    {
+        "icon": "📊",
+        "title": "Fleet Summary Strip — Instant Health Snapshot",
+        "body": (
+            "The <span class='tour-highlight'>info strip</span> below the selector gives you the fleet's vital signs at one glance:<br><br>"
+            "• <b>Fleet name</b> — which dataset is currently active<br>"
+            "• <b>Total Engines</b> — how many engines are in this fleet<br>"
+            "• <b>Avg. Flights Left</b> — the average predicted remaining flights across all engines<br>"
+            "• <span class='tour-warn'>Most Critical</span> — the engine with the fewest remaining flights (closest to failure)<br>"
+            "• <span class='tour-safe'>Fleet Health %</span> — what percentage of the fleet is in healthy (green) status<br><br>"
+            "This strip updates live whenever you switch datasets."
+        ),
+        "tip": None
+    },
+    {
+        "icon": "🚦",
+        "title": "KPI Cards — 5 Clear Action Categories",
+        "body": (
+            "The <b>5 glowing KPI cards</b> sort every engine into a simple, color-coded action level. "
+            "No pilot or mechanic needs to understand machine learning — they just look at the color:<br><br>"
+            "• 🔴 <span class='tour-warn'>Ground Immediately</span> — Emergency: fewer than 15 flights left. Stop flying this plane now.<br>"
+            "• 🟠 <b>Repair Soon</b> — Book a maintenance slot within the next 5 days.<br>"
+            "• 🟡 <b>Inspection Due</b> — Put this engine on a weekly watch list.<br>"
+            "• 🟣 <b>Engineer Review</b> — Our anomaly detector flagged unusual sensor readings; a human engineer should check.<br>"
+            "• 🟢 <span class='tour-safe'>Healthy</span> — Engine is in great shape. Cleared for all flights.<br><br>"
+            "Hover over any card to see the subtle lift animation."
+        ),
+        "tip": None
+    },
+    {
+        "icon": "🔲",
+        "title": "Fleet Health Mosaic — See Every Engine at Once",
+        "body": (
+            "The <span class='tour-highlight'>mosaic board</span> below the KPIs is a visual heatmap where "
+            "<b>each vertical bar represents one engine</b>. Two visual cues tell you the story:<br><br>"
+            "• <b>Color</b> = severity level (red/orange/yellow/purple/green, matching the KPI cards above)<br>"
+            "• <b>Darkness</b> = how close the engine is to failure. A <b>darker bar</b> means fewer remaining flights. "
+            "A <b>brighter bar</b> means the engine still has plenty of life left.<br><br>"
+            "<b>Hover your mouse</b> over any bar to see the exact engine number, status, and predicted remaining flights. "
+            "The legend at the bottom shows the count for each severity level."
+        ),
+        "tip": "💡 Hover over the darkest red bars — those are the engines needing emergency grounding."
+    },
+    {
+        "icon": "📋",
+        "title": "Tab 1 — Fleet Action Board (Maintenance Table)",
+        "body": (
+            "Click the <span class='tour-highlight'>📋 Fleet Action Board</span> tab. "
+            "This is the <b>operations table</b> that airline maintenance planners use daily:<br><br>"
+            "• Every engine that needs attention is listed, <b>ranked by urgency</b> (most critical first)<br>"
+            "• <b>Flights Left</b> shows a visual progress bar — shorter bars mean less time to act<br>"
+            "• <b>Likely Range</b> is the 80% safety window (e.g. '12–22 flights') — the true answer falls in this range 95% of the time<br>"
+            "• <b>Planned On</b> uses the conservative (safe, lower) number to schedule maintenance early<br>"
+            "• <b>Eng. Check</b> — checkbox for the lead engineer to sign off after inspecting<br><br>"
+            "You can <b>filter by urgency level</b> using the multi-select at the top, and download the full schedule as CSV or JSON."
+        ),
+        "tip": "💡 Try checking off an engine — the checkbox state persists across interactions."
+    },
+    {
+        "icon": "📊",
+        "title": "Tab 2 — Fleet Analytics (Visual Charts)",
+        "body": (
+            "Click the <span class='tour-highlight'>📊 Fleet Analytics</span> tab for visual intelligence:<br><br>"
+            "• <b>Donut Chart</b> — Shows the proportion of engines in each risk category. "
+            "The center number is the total fleet size.<br>"
+            "• <b>Horizontal Bar Chart</b> — How many engines fall in each risk level, with exact counts.<br>"
+            "• <b>RUL Distribution Histogram</b> — A stacked histogram showing how many flights each engine has left. "
+            "Vertical dashed lines mark the Critical, High, and Medium thresholds. "
+            "Engines to the <span class='tour-warn'>left</span> of the red line are in danger.<br>"
+            "• <b>Predicted vs. Actual Scatter Plot</b> — Each dot is one engine. "
+            "The closer dots cluster to the diagonal line, the more accurate our model is. "
+            "Our average error is under 10 flights, dropping to just 2.6 flights near failure."
+        ),
+        "tip": "💡 Look at the scatter plot — notice how dots near the origin (low RUL) are tightest to the perfect line."
+    },
+    {
+        "icon": "🔍",
+        "title": "Tab 3 — Engine Deep Dive (Single Engine Analysis)",
+        "body": (
+            "Click the <span class='tour-highlight'>🔍 Engine Deep Dive</span> tab and select any engine from the dropdown.<br><br>"
+            "<b>Stat Cards:</b> Five cards at the top show the engine's current decision, AI-predicted flights remaining, "
+            "the 80% safety window range, NASA's actual answer, and the anomaly score.<br><br>"
+            "<b>RUL Trajectory Chart:</b> The big line chart shows the engine's entire flight history. "
+            "The <span class='tour-highlight'>blue line</span> is our AI's prediction. "
+            "The <b>dotted gray line</b> is NASA's actual ground truth. "
+            "The <span class='tour-highlight'>light blue shaded cone</span> is the 80% safety window — notice how it "
+            "<b>narrows down as the engine ages</b>, giving engineers extreme precision right when it matters most. "
+            "The colored horizontal bands show the Critical (red), High (orange), and Medium (yellow) danger zones."
+        ),
+        "tip": "💡 Drag the 'Replay to flight cycle' slider backwards to watch the AI's predictions evolve over the engine's entire life."
+    },
+    {
+        "icon": "🔬",
+        "title": "Anomaly Detection — Multi-Sensor Drift Tracking",
+        "body": (
+            "Below the RUL trajectory chart is the <b>Anomaly Score chart</b>.<br><br>"
+            "Our system runs an <b>Isolation Forest</b> algorithm that continuously compares the engine's current sensor readings "
+            "against what a brand-new, healthy engine looks like. When sensors start drifting away from normal — "
+            "even if the RUL prediction hasn't dropped yet — this anomaly score <span class='tour-warn'>spikes above the red dashed threshold line</span>.<br><br>"
+            "This gives airlines a <b>second layer of protection</b>: even if the main RUL model encounters an unusual flight condition "
+            "it hasn't seen before, the anomaly detector catches the drift independently."
+        ),
+        "tip": None
+    },
+    {
+        "icon": "📝",
+        "title": "Automated Digital Work Order — Ready for the Hangar",
+        "body": (
+            "At the bottom of the Engine Deep Dive tab, the system automatically generates a <b>Digital Work Order</b> "
+            "based on the engine's current severity level:<br><br>"
+            "• <b>Work Order ID</b> — unique identifier for tracking in airline ERP systems<br>"
+            "• <b>Root Cause Diagnosis</b> — plain-English explanation of what is wrong (e.g., 'compressor seal wear detected')<br>"
+            "• <b>Assigned Maintenance Bay</b> — Bay 1 for heavy overhaul, Bay 3 for scheduled repair, Line Gate for inspections<br>"
+            "• <b>Step-by-Step Checklist</b> — actionable tasks with checkboxes (e.g., borescope inspection, sensor recalibration, ground-test sign-off)<br>"
+            "• <b>Download Options</b> — Instantly export as a printable Job Sheet (TXT), CSV, or JSON<br><br>"
+            "This closes the loop from raw sensor data all the way to a mechanic's hands."
+        ),
+        "tip": "💡 Try downloading the TXT Job Sheet — it's formatted exactly like a real airline maintenance work order."
+    },
+]
+
+TOTAL_TOUR_STEPS = len(TOUR_STEPS)
+
+if "tour_active" not in st.session_state:
+    st.session_state.tour_active = False
+if "tour_step" not in st.session_state:
+    st.session_state.tour_step = 0
 
 NEW_ST = Version(st.__version__) >= Version("1.50")
 
@@ -522,6 +766,73 @@ st.html(f"""
   </div>
 </div>
 """)
+
+# ─── TOUR START BUTTON ────────────────────────────────────────────────────────
+if not st.session_state.tour_active:
+    if st.button("🎯  Take a 60-Second Guided Tour of the Dashboard", type="secondary", key="tour_start"):
+        st.session_state.tour_active = True
+        st.session_state.tour_step = 0
+        st.rerun()
+
+# ─── TOUR CARD RENDERER ──────────────────────────────────────────────────────
+if st.session_state.tour_active:
+    step_idx = st.session_state.tour_step
+    step = TOUR_STEPS[step_idx]
+
+    # Build progress pips
+    pips_html = ""
+    for i in range(TOTAL_TOUR_STEPS):
+        if i < step_idx:
+            pips_html += '<div class="tour-pip done"></div>'
+        elif i == step_idx:
+            pips_html += '<div class="tour-pip active"></div>'
+        else:
+            pips_html += '<div class="tour-pip"></div>'
+
+    tip_html = ""
+    if step.get("tip"):
+        tip_html = f'<div class="tour-tip">{step["tip"]}</div>'
+
+    st.html(f"""
+    <div class="tour-card">
+      <div class="tour-header">
+        <div class="tour-badge">
+          <div class="tour-badge-dot"></div>
+          GUIDED TOUR
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="tour-progress">{pips_html}</div>
+          <div class="tour-step-num">Step {step_idx + 1} of {TOTAL_TOUR_STEPS}</div>
+        </div>
+      </div>
+      <div class="tour-title"><span class="tour-icon">{step['icon']}</span>{step['title']}</div>
+      <div class="tour-body">{step['body']}</div>
+      {tip_html}
+    </div>
+    """)
+
+    # Navigation buttons
+    tour_cols = st.columns([1, 1, 1, 3])
+    with tour_cols[0]:
+        if step_idx > 0:
+            if st.button("← Previous", key="tour_prev"):
+                st.session_state.tour_step -= 1
+                st.rerun()
+    with tour_cols[1]:
+        if step_idx < TOTAL_TOUR_STEPS - 1:
+            if st.button("Next →", key="tour_next", type="primary"):
+                st.session_state.tour_step += 1
+                st.rerun()
+        else:
+            if st.button("✅ Finish Tour", key="tour_finish", type="primary"):
+                st.session_state.tour_active = False
+                st.session_state.tour_step = 0
+                st.rerun()
+    with tour_cols[2]:
+        if st.button("✕ End Tour", key="tour_end"):
+            st.session_state.tour_active = False
+            st.session_state.tour_step = 0
+            st.rerun()
 
 # ─── FULL-WIDTH DATASET SELECTOR ────────────────────────────────────────────
 SUBSET_DESCRIPTIONS = {
