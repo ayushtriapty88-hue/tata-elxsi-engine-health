@@ -798,7 +798,7 @@ def tour_box(step_num):
     arrow = "▲" if step_num > 0 else "▼"
 
     st.html(f"""
-    <div class="tour-card">
+    <div id="active-tour-step" class="tour-card">
       <div class="tour-header">
         <div class="tour-badge">
           <div class="tour-badge-dot"></div>
@@ -813,6 +813,14 @@ def tour_box(step_num):
       <div class="tour-body">{step['body']}</div>
       {tip_html}
     </div>
+    <script>
+      setTimeout(function() {{
+        const el = document.getElementById("active-tour-step");
+        if (el) {{
+          el.scrollIntoView({{ behavior: "smooth", block: "center" }});
+        }}
+      }}, 150);
+    </script>
     """)
 
     # Navigation
@@ -991,11 +999,23 @@ if n_ground > 0:
     """)
 
 # ─── TABS ────────────────────────────────────────────────────────────────────
-tab_list, tab_charts, tab_engine = st.tabs([
+# Automatically switch active tab based on tour step so user is never left hanging
+tab_names = [
     "📋  Fleet Action Board",
     "📊  Fleet Analytics",
     "🔍  Engine Deep Dive"
-])
+]
+
+default_tab = tab_names[0]
+if st.session_state.tour_active:
+    if st.session_state.tour_step == 5:
+        default_tab = tab_names[0]  # Tab 1: Fleet Action Board
+    elif st.session_state.tour_step == 6:
+        default_tab = tab_names[1]  # Tab 2: Fleet Analytics
+    elif st.session_state.tour_step in [7, 8, 9]:
+        default_tab = tab_names[2]  # Tab 3: Engine Deep Dive
+
+tab_list, tab_charts, tab_engine = st.tabs(tab_names, default=default_tab)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — FLEET ACTION BOARD
