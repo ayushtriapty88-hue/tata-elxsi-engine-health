@@ -814,12 +814,16 @@ def tour_box(step_num):
       {tip_html}
     </div>
     <script>
-      setTimeout(function() {{
-        const el = document.getElementById("active-tour-step");
-        if (el) {{
-          el.scrollIntoView({{ behavior: "smooth", block: "center" }});
+      (function() {{
+        function scrollNow() {{
+          const el = document.getElementById("active-tour-step");
+          if (el) {{
+            el.scrollIntoView({{ behavior: "smooth", block: "start" }});
+          }}
         }}
-      }}, 150);
+        setTimeout(scrollNow, 100);
+        setTimeout(scrollNow, 400);
+      }})();
     </script>
     """)
 
@@ -1006,16 +1010,20 @@ tab_names = [
     "🔍  Engine Deep Dive"
 ]
 
-default_tab = tab_names[0]
+# Map tour step directly to tab index to ensure perfect synchronization
+tab_idx = 0
 if st.session_state.tour_active:
-    if st.session_state.tour_step == 5:
-        default_tab = tab_names[0]  # Tab 1: Fleet Action Board
-    elif st.session_state.tour_step == 6:
-        default_tab = tab_names[1]  # Tab 2: Fleet Analytics
+    if st.session_state.tour_step == 6:
+        tab_idx = 1  # Tab 2: Fleet Analytics
     elif st.session_state.tour_step in [7, 8, 9]:
-        default_tab = tab_names[2]  # Tab 3: Engine Deep Dive
+        tab_idx = 2  # Tab 3: Engine Deep Dive
 
-tab_list, tab_charts, tab_engine = st.tabs(tab_names, default=default_tab)
+# Keyed with step to force clean re-mount and programmatic tab selection on every step change
+tab_list, tab_charts, tab_engine = st.tabs(
+    tab_names,
+    default=tab_names[tab_idx],
+    key=f"fleet_main_tabs_step_{st.session_state.tour_step if st.session_state.tour_active else 'idle'}"
+)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 1 — FLEET ACTION BOARD
