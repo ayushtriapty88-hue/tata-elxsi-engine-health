@@ -774,24 +774,28 @@ if not st.session_state.tour_active:
         st.session_state.tour_step = 0
         st.rerun()
 
-# ─── TOUR CARD RENDERER ──────────────────────────────────────────────────────
-if st.session_state.tour_active:
-    step_idx = st.session_state.tour_step
-    step = TOUR_STEPS[step_idx]
 
-    # Build progress pips
-    pips_html = ""
+def tour_box(step_num):
+    """Render an inline tour explanation box if the current tour step matches."""
+    if not st.session_state.tour_active:
+        return
+    if st.session_state.tour_step != step_num:
+        return
+
+    step = TOUR_STEPS[step_num]
+
+    # Progress pips
+    pips = ""
     for i in range(TOTAL_TOUR_STEPS):
-        if i < step_idx:
-            pips_html += '<div class="tour-pip done"></div>'
-        elif i == step_idx:
-            pips_html += '<div class="tour-pip active"></div>'
-        else:
-            pips_html += '<div class="tour-pip"></div>'
+        cls = "done" if i < step_num else ("active" if i == step_num else "")
+        pips += f'<div class="tour-pip {cls}"></div>'
 
     tip_html = ""
     if step.get("tip"):
         tip_html = f'<div class="tour-tip">{step["tip"]}</div>'
+
+    # Arrow pointing up to the element above
+    arrow = "▲" if step_num > 0 else "▼"
 
     st.html(f"""
     <div class="tour-card">
@@ -801,8 +805,8 @@ if st.session_state.tour_active:
           GUIDED TOUR
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div class="tour-progress">{pips_html}</div>
-          <div class="tour-step-num">Step {step_idx + 1} of {TOTAL_TOUR_STEPS}</div>
+          <div class="tour-progress">{pips}</div>
+          <div class="tour-step-num">Step {step_num + 1} of {TOTAL_TOUR_STEPS}</div>
         </div>
       </div>
       <div class="tour-title"><span class="tour-icon">{step['icon']}</span>{step['title']}</div>
@@ -811,30 +815,35 @@ if st.session_state.tour_active:
     </div>
     """)
 
-    # Navigation buttons
-    tour_cols = st.columns([1, 1, 1, 3])
-    with tour_cols[0]:
-        if step_idx > 0:
-            if st.button("← Previous", key="tour_prev"):
+    # Navigation
+    tc = st.columns([1, 1, 1, 3])
+    with tc[0]:
+        if step_num > 0:
+            if st.button("← Previous", key=f"tp_{step_num}"):
                 st.session_state.tour_step -= 1
                 st.rerun()
-    with tour_cols[1]:
-        if step_idx < TOTAL_TOUR_STEPS - 1:
-            if st.button("Next →", key="tour_next", type="primary"):
+    with tc[1]:
+        if step_num < TOTAL_TOUR_STEPS - 1:
+            if st.button("Next →", key=f"tn_{step_num}", type="primary"):
                 st.session_state.tour_step += 1
                 st.rerun()
         else:
-            if st.button("✅ Finish Tour", key="tour_finish", type="primary"):
+            if st.button("✅ Finish Tour", key=f"tf_{step_num}", type="primary"):
                 st.session_state.tour_active = False
                 st.session_state.tour_step = 0
                 st.rerun()
-    with tour_cols[2]:
-        if st.button("✕ End Tour", key="tour_end"):
+    with tc[2]:
+        if st.button("✕ End Tour", key=f"te_{step_num}"):
             st.session_state.tour_active = False
             st.session_state.tour_step = 0
             st.rerun()
 
+
+# ── Tour Step 0: Welcome (below hero) ──
+tour_box(0)
+
 # ─── FULL-WIDTH DATASET SELECTOR ────────────────────────────────────────────
+tour_box(1)  # Step 1: Fleet Dataset Selector
 SUBSET_DESCRIPTIONS = {
     "FD001": "FD001 — Sea Level · HPC Degradation (100 Test Engines)",
     "FD002": "FD002 — 6 Flight Conditions · HPC Degradation (259 Test Engines)",
@@ -869,6 +878,7 @@ avg_rul   = round(dec["pred_RUL"].mean(), 1)
 min_rul   = round(dec["pred_RUL"].min(), 1)
 
 # ─── INFO STRIP ──────────────────────────────────────────────────────────────
+tour_box(2)  # Step 2: Fleet Summary Strip
 st.html(f"""
 <div class="info-strip">
   <div class="info-strip-item">
@@ -894,6 +904,7 @@ st.html(f"""
 """)
 
 # ─── KPI STRIP ──────────────────────────────────────────────────────────────
+tour_box(3)  # Step 3: 5 Action KPI Cards
 st.html(f"""
 <div class="kpi-strip">
   <div class="kpi-card c-red">
@@ -930,6 +941,7 @@ st.html(f"""
 """)
 
 # ─── FLEET MOSAIC BOARD ──────────────────────────────────────────────────────
+tour_box(4)  # Step 4: Fleet Mosaic Heatmap Board
 tiles_html = ""
 for _, r in dec.iterrows():
     s = r["severity"]
@@ -989,6 +1001,7 @@ tab_list, tab_charts, tab_engine = st.tabs([
 # TAB 1 — FLEET ACTION BOARD
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_list:
+    tour_box(5)  # Step 5: Tab 1 Fleet Action Board
     act = dec[dec["severity"] != "LOW"].copy()
     if act.empty:
         st.success("✅ Every engine in the fleet is fully healthy. No maintenance required.")
@@ -1063,6 +1076,7 @@ with tab_list:
 # TAB 2 — FLEET ANALYTICS (new visual charts tab)
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_charts:
+    tour_box(6)  # Step 6: Tab 2 Fleet Analytics Charts
     ca, cb = st.columns([1, 1])
 
     # ── Donut chart: fleet health breakdown ───────────────────────────────
@@ -1226,6 +1240,7 @@ with tab_charts:
 # TAB 3 — ENGINE DEEP DIVE
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_engine:
+    tour_box(7)  # Step 7: Tab 3 Engine Deep Dive Stats & Trajectory Chart
     units  = sorted(dec["unit"].astype(int).unique().tolist())
     sev_of = dict(zip(dec["unit"].astype(int), dec["severity"]))
 
@@ -1331,6 +1346,7 @@ with tab_engine:
     show(fig, height=420)
 
     # ─── Anomaly Score Chart ─────────────────────────────────────────────
+    tour_box(8)  # Step 8: Multi-Sensor Anomaly Gating Score
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(
         x=h["cycle"], y=h["anomaly_score"],
@@ -1362,6 +1378,7 @@ with tab_engine:
     show(fig2, height=280)
 
     # ─── Clean MRO Work Order Job Card ───────────────────────────────────
+    tour_box(9)  # Step 9: Automated MRO Work Order & Job Card Checklist
     wo_id = f"WO-{subset}-{unit:03d}-CYCLE{at:04d}"
 
     if sev_now == "CRITICAL":
